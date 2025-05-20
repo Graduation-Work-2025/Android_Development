@@ -1,8 +1,23 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- ✅ 위치 권한 -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <!-- ✅ 인터넷 및 저장소 권한 -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+
+
+    <!-- ✅ Google Play Services 권한 -->
+    <uses-permission android:name="com.google.android.providers.gsf.permission.READ_GSERVICES" />
 
     <application
         android:name=".BloomApp"
@@ -14,38 +29,53 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Bloom"
-        tools:targetApi="31">
+        tools:targetApi="34">
 
-        <!-- ✅ Google Maps API 키 -->
+        <!-- ✅ Google Maps API Key -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="YOUR_KEY_HERE" />
+            android:value="AIzaSyCO4jMU2n46kShcj1_l-__J3vrWjCZ3Ayw" />
 
-        <!-- ✅ 시스템 기본 splash 제거 -->
+        <!-- ✅ Fused Location API -->
+        <meta-data
+            android:name="com.google.android.gms.version"
+            android:value="@integer/google_play_services_version" />
+
+        <!-- ✅ Google Maps Map ID -->
+        <meta-data
+            android:name="com.google.android.libraries.maps.v2.MAP_ID"
+            android:value="7db2d5af11f8a85ff15d5121" />
+
+
+        <!-- ✅ Splash 화면 -->
         <meta-data
             android:name="android.windowSplashScreenAnimatedIcon"
-            android:resource="@android:color/transparent" />
+            android:value="@android:color/transparent" />
         <meta-data
             android:name="android.windowSplashScreenBackground"
-            android:resource="@android:color/white" />
+            android:value="@android:color/white" />
 
-        <!-- ✅ SplashActivity: 앱 진입점 -->
+        <!-- ✅ 앱 진입점 (SplashActivity) -->
         <activity
             android:name=".SplashActivity"
             android:exported="true"
-            android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+            android:theme="@style/Theme.Bloom.Splash">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
-        <!-- ✅ MainActivity: 일반 화면 -->
+        <!-- ✅ MainActivity -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:label=""
-            android:theme="@style/Theme.Bloom" />
-
+            android:theme="@style/Theme.Bloom">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
     </application>
+
 </manifest>

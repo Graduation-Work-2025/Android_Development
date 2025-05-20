@@ -19,10 +19,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.bloom.R
-import com.example.bloom.components.BackButton
 import com.example.bloom.data.LoginRequestDto
 import com.example.bloom.network.RetrofitInstance
 import com.example.bloom.util.PreferenceManager
+import com.example.bloom.util.TokenProvider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -40,16 +40,15 @@ fun LoginScreen(navController: NavController) {
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        BackButton(navController)
-
         Spacer(modifier = Modifier.height(10.dp))
+
         Image(
             painter = painterResource(id = R.drawable.join),
-            contentDescription = "로그인 타이틀",
-            modifier = Modifier.size(350.dp)
+            contentDescription = "로그인 이미지",
+            modifier = Modifier.size(150.dp)
         )
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
         OutlinedTextField(
             value = userId,
@@ -70,7 +69,7 @@ fun LoginScreen(navController: NavController) {
             keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done)
         )
 
-        Spacer(modifier = Modifier.height(40.dp))
+        Spacer(modifier = Modifier.height(30.dp))
 
         Button(
             onClick = {
@@ -79,38 +78,48 @@ fun LoginScreen(navController: NavController) {
                     return@Button
                 }
 
-                val loginDto = LoginRequestDto(
-                    user_id = userId,
-                    password = password
-                )
+                val loginDto = LoginRequestDto(user_id = userId, password = password)
 
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
-                        Log.d("RetrofitLogin", "로그인 요청: $loginDto")
                         val response = RetrofitInstance.api.login(loginDto)
-                        Log.d("RetrofitLogin", "HTTP 응답 코드: ${response.code()}")
+                        Log.d("LoginScreen", "로그인 요청: $loginDto")
 
                         if (response.isSuccessful) {
-                            val accessToken = response.body()?.access_token ?: ""
-                            Log.d("RetrofitLogin", "access_token: $accessToken")
+                            val responseBody = response.body()
+                            val accessToken = responseBody?.access_token ?: ""
+                            val receivedUserId = responseBody?.user_id ?: -1
 
-                            if (accessToken.isNotBlank()) {
-                                // ⭐ 1. Access Token 저장
+                            Log.d("LoginScreen", "받은 토큰: $accessToken, 유저 ID: $receivedUserId")
+
+                            if (accessToken.isNotBlank() && receivedUserId != -1) {
+                                // ✅ Access Token 저장
                                 PreferenceManager.setAccessToken(accessToken)
+                                TokenProvider.setToken(accessToken, context)
 
-                                // ⭐ 2. 내 정보 조회하고 저장
-                                val profileResponse = RetrofitInstance.api.getUserProfile("Bearer $accessToken")
-                                if (profileResponse.isSuccessful) {
-                                    profileResponse.body()?.let { profile ->
-                                        PreferenceManager.setNickname(profile.nickname)
-                                        PreferenceManager.setProfileImageUri(profile.profileImage ?: "")
-                                        Log.d("RetrofitLogin", "프로필 저장 완료")
+                                // ✅ 유저 ID 저장
+                                PreferenceManager.setUserId(receivedUserId)
+
+                                // ✅ 사용자 정보 가져오기
+
+                                val userInfoResponse = RetrofitInstance.api.getMyInfo(
+                                    token = "Bearer $accessToken"
+                                )
+
+
+                                if (userInfoResponse.isSuccessful) {
+                                    val userInfo = userInfoResponse.body()
+                                    userInfo?.let { user ->
+                                        val nickname = user.nickname ?: "사용자"
+                                        Log.d("LoginScreen", "받은 닉네임: $nickname")
+
+                                        // ✅ 닉네임 저장
+                                        PreferenceManager.setNickname(nickname)
                                     }
                                 } else {
-                                    Log.e("RetrofitLogin", "프로필 조회 실패: ${profileResponse.code()}")
+                                    Log.e("LoginScreen", "사용자 정보 불러오기 실패: ${userInfoResponse.code()}")
                                 }
 
-                                // ⭐ 3. 메인으로 이동
                                 withContext(Dispatchers.Main) {
                                     Toast.makeText(context, "로그인 성공!", Toast.LENGTH_SHORT).show()
                                     navController.navigate("main") {
@@ -119,27 +128,28 @@ fun LoginScreen(navController: NavController) {
                                 }
                             } else {
                                 withContext(Dispatchers.Main) {
-                                    Toast.makeText(context, "토큰이 비어 있습니다.", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, "서버에서 유효한 데이터가 반환되지 않았습니다.", Toast.LENGTH_SHORT).show()
                                 }
                             }
                         } else {
+                            val errorMessage = when (response.code()) {
+                                401 -> "아이디 또는 비밀번호가 잘못되었습니다."
+                                else -> "로그인 실패: ${response.code()}"
+                            }
+
                             withContext(Dispatchers.Main) {
-                                val msg = when (response.code()) {
-                                    400 -> "비밀번호가 잘못되었습니다."
-                                    404 -> "존재하지 않는 아이디입니다."
-                                    else -> "로그인 실패: ${response.code()}"
-                                }
-                                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
                             }
                         }
                     } catch (e: Exception) {
                         withContext(Dispatchers.Main) {
-                            Toast.makeText(context, "오류 발생: ${e.message}", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "네트워크 오류: ${e.message}", Toast.LENGTH_SHORT).show()
                         }
+                        Log.e("LoginScreen", "로그인 오류: ${e.message}")
                     }
                 }
             },
-            modifier = Modifier.size(250.dp, 60.dp),
+            modifier = Modifier.size(250.dp, 45.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF55996F))
         ) {
             Text("로그인", fontSize = 18.sp, color = Color.White)

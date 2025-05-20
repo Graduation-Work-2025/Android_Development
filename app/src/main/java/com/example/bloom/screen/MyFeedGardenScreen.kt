@@ -1,13 +1,15 @@
 package com.example.bloom.screen
 
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,6 +18,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -24,97 +27,138 @@ import com.example.bloom.R
 import com.example.bloom.data.StoryData
 import com.example.bloom.network.RetrofitInstance
 import com.example.bloom.util.PreferenceManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun MyFeedGardenScreen(navController: NavController) {
     val context = LocalContext.current
     val token = PreferenceManager.getAccessToken() ?: ""
     val bearerToken = "Bearer $token"
+    val coroutineScope = rememberCoroutineScope()
 
-    var myStories by remember { mutableStateOf<List<StoryData>>(emptyList()) }
+    var stories by remember { mutableStateOf(emptyList<StoryData>()) }
+    var nickname by remember { mutableStateOf(PreferenceManager.getNickname()) }
 
-    val profileImageUri = PreferenceManager.getProfileImageUri()
-    val nickname = PreferenceManager.getNickname()?.takeIf { it.isNotBlank() } ?: "익명의 정원사"
-
-    // 서버에서 내 스토리 목록 조회
+    // ✅ 게시물 목록 불러오기 (최신순 정렬)
     LaunchedEffect(Unit) {
-        try {
-            val response = RetrofitInstance.api.getMyStories(bearerToken)
-            if (response.isSuccessful) {
-                myStories = response.body() ?: emptyList()
-            } else {
-                Toast.makeText(context, "피드를 불러오지 못했습니다.", Toast.LENGTH_SHORT).show()
+        coroutineScope.launch {
+            try {
+                val response = RetrofitInstance.api.getMyStories(bearerToken)
+                if (response.isSuccessful) {
+                    val fetchedStories = response.body()?.stories ?: emptyList()
+                    stories = fetchedStories.sortedByDescending { it.created_at }
+                }
+            } catch (e: Exception) {
+                Log.e("MyFeedGardenScreen", "Error: ${e.message}")
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "스토리 불러오기 실패", Toast.LENGTH_SHORT).show()
+                }
             }
-        } catch (e: Exception) {
-            Toast.makeText(context, "오류 발생: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
 
-    Column(modifier = Modifier.padding(16.dp)) {
-        // 프로필 정보
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 24.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Image(
-                painter = rememberAsyncImagePainter(
-                    model = profileImageUri ?: R.drawable.profile_default
-                ),
-                contentDescription = "프로필",
-                contentScale = ContentScale.Crop,
+    val currentRoute = navController.currentBackStackEntry?.destination?.route
+
+    Scaffold(
+        bottomBar = {
+            BottomNavigationBar(navController = navController, currentRoute = currentRoute)
+        }
+    ) { paddingValues ->
+        Column(modifier = Modifier.padding(paddingValues).padding(16.dp)) {
+
+            // ✅ 상단 프로필 섹션
+            Row(
                 modifier = Modifier
-                    .size(130.dp)
-                    .clip(CircleShape)
-            )
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = nickname,
-                    fontSize = 20.sp
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.profile_default),
+                    contentDescription = "프로필 이미지",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(100.dp)
+                        .padding(1.dp)
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.width(16.dp))
 
-                Button(
-                    onClick = { navController.navigate("edit_profile") },
-                    modifier = Modifier.height(44.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF55996F))
+                Text(
+                    text = nickname,
+                    fontSize = 20.sp,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+            }
+
+            // ✅ 구분선 추가
+            Divider(
+                color = Color(0xFF55996F), // 초록색
+                thickness = 2.dp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)  // 위아래 패딩 설정
+            )
+
+            if (stories.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text("프로필 편집", color = Color.White, fontSize = 16.sp)
-                }
-            }
-        }
-
-        // 피드
-        if (myStories.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("아직 심어진 감정이 없어요 🌱", fontSize = 16.sp)
-            }
-        } else {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(3),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxSize()
-            ) {
-                items(myStories) { story ->
-                    Image(
-                        painter = rememberAsyncImagePainter(model = story.image_url),
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .aspectRatio(1f)
-                            .clip(MaterialTheme.shapes.medium)
-                            .clickable {
-                                navController.navigate("post_detail/${story.id}")
-                            }
+                    Text(
+                        text = "아직 업로드된 게시물이 없습니다.",
+                        fontSize = 16.sp,
+                        color = MaterialTheme.colorScheme.onBackground
                     )
+                }
+            } else {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(3),
+                    verticalArrangement = Arrangement.spacedBy(1.dp),
+                    horizontalArrangement = Arrangement.spacedBy(1.dp),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    items(stories.reversed()) { story ->
+                        val imageUrl = story.image_url ?: ""
+
+                        Box(
+                            modifier = Modifier
+                                .aspectRatio(1f)
+                                .background(Color.White)
+                                .padding(1.dp)
+                                .clickable {
+                                    navController.navigate("post_detail/${story.id}")
+                                }
+                        ) {
+                            if (imageUrl.isNotEmpty()) {
+                                Image(
+                                    painter = rememberAsyncImagePainter(imageUrl),
+                                    contentDescription = "Story Image",
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(Color.Gray),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "이미지 없음",
+                                        fontSize = 12.sp,
+                                        color = MaterialTheme.colorScheme.onBackground
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
     }
+
 }
+

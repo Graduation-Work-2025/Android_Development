@@ -39,6 +39,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import androidx.compose.foundation.layout.Arrangement
 
 @Composable
 fun SignUpScreen(navController: NavController) {
@@ -55,56 +56,68 @@ fun SignUpScreen(navController: NavController) {
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Top  // ✅ 위쪽으로 정렬
     ) {
-        BackButton(navController)
-
         Spacer(modifier = Modifier.height(10.dp))
+
         Image(
             painter = painterResource(id = R.drawable.register),
             contentDescription = "회원가입 타이틀",
-            modifier = Modifier.size(200.dp)
+            modifier = Modifier.size(150.dp)
         )
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(16.dp))  // ✅ 간격 조정
 
         OutlinedTextField(
             value = name,
             onValueChange = { name = it },
             label = { Text("이름") },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth(0.85f),
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Text,
                 imeAction = ImeAction.Next
             )
         )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
         OutlinedTextField(
             value = nickname,
             onValueChange = { nickname = it },
             label = { Text("닉네임") },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(0.85f),
         )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
         OutlinedTextField(
             value = userId,
             onValueChange = { userId = it },
             label = { Text("아이디") },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(0.85f),
         )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
             label = { Text("비밀번호") },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth(0.85f),
             visualTransformation = PasswordVisualTransformation()
         )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
         OutlinedTextField(
             value = phone,
             onValueChange = { phone = it },
             label = { Text("전화번호") },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(0.85f),
         )
 
-        Spacer(modifier = Modifier.height(30.dp))
+        Spacer(modifier = Modifier.height(20.dp))  // ✅ 간격 줄이기
 
         Button(
             onClick = {
@@ -124,9 +137,7 @@ fun SignUpScreen(navController: NavController) {
 
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
-                        Log.d("RetrofitSignUp", "전송할 DTO: $dto")
                         val response = RetrofitInstance.api.signUp(dto)
-                        Log.d("RetrofitSignUp", "HTTP 응답 코드: ${response.code()}")
 
                         if (response.isSuccessful) {
                             withContext(Dispatchers.Main) {
@@ -147,7 +158,7 @@ fun SignUpScreen(navController: NavController) {
                     }
                 }
             },
-            modifier = Modifier.size(250.dp, 60.dp),
+            modifier = Modifier.size(250.dp, 45.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF55996F))
         ) {
             Text("회원가입", fontSize = 18.sp, color = Color.White)

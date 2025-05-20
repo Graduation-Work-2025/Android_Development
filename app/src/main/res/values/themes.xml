@@ -1,6 +1,16 @@
 <resources>
 
     <!-- ✅ 기본 앱 테마 -->
-    <style name="Theme.Bloom" parent="Theme.Material3.DayNight.NoActionBar" />
+    <style name="Theme.Bloom" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="android:colorBackground">@android:color/white</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+    </style>
+
+    <!-- ✅ 스플래시 테마 -->
+    <style name="Theme.Bloom.Splash" parent="Theme.Bloom">
+        <item name="android:windowBackground">@android:color/white</item>
+        <item name="android:windowSplashScreenBackground">@android:color/white</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_round</item>
+    </style>
 
 </resources>

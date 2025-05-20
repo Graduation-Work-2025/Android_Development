@@ -14,7 +14,7 @@ class SplashActivity : AppCompatActivity() {
 
         // 진입 확인 로그 및 토스트
         Log.d("🌸SplashCheck", "SplashActivity 진입 성공!")
-        Toast.makeText(this, "✅ SplashActivity 실행됨", Toast.LENGTH_SHORT).show()
+        //Toast.makeText(this, "✅ SplashActivity 실행됨", Toast.LENGTH_SHORT).show()
 
         // 레이아웃 설정
         setContentView(R.layout.activity_splash)

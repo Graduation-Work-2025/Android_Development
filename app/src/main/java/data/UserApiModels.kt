@@ -29,8 +29,20 @@ data class LoginRequestDto(
 
 // 로그인 응답 DTO
 data class LoginResponseDto(
-    val access_token: String
+    val access_token: String,
+    val user_id: Int,
+    val nickname: String
 )
+
+// ✅ 이미지 업로드 응답 DTO
 data class UploadImageResponse(
-    val imageUrl: String
+    val message: String,
+    val file_url: String
+)
+
+// ✅ Presigned URL 생성 응답 DTO
+data class PresignedUrlResponse(
+    val presigned_url : String,
+    val file_url: String,
+    val expiration_date: String
 )

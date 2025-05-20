@@ -1,7 +1,8 @@
 package com.example.bloom.network
 
 import com.example.bloom.data.*
-import okhttp3.MultipartBody
+import com.example.bloom.data.GptRequestBody
+import com.example.bloom.data.GptResponse
 import retrofit2.Response
 import retrofit2.http.*
 
@@ -9,61 +10,61 @@ interface ApiService {
 
     // ✅ 회원가입
     @POST("users/signup")
-    suspend fun signUp(@Body signUpInfo: SignUpRequestDto): Response<Unit>
-
+    suspend fun signUp(
+        @Body signUpInfo: SignUpRequestDto
+    ): Response<Unit>
 
     // ✅ 로그인
     @POST("users/login")
-    suspend fun login(@Body loginInfo: LoginRequestDto): Response<LoginResponseDto>
+    suspend fun login(
+        @Body loginInfo: LoginRequestDto
+    ): Response<LoginResponseDto>
 
-    // ✅ 내 정보 조회 (토큰 필요)
-    @GET("users/profile")
-    suspend fun getUserProfile(
-        @Header("Authorization") token: String
-    ): Response<UserProfileResponse>
-
-    // ✅ 내 정보 수정
-    @PUT("users/update")
-    suspend fun updateUserProfile(
+    // ✅ Presigned URL 요청
+    @POST("s3/upload/url")
+    suspend fun getPresignedUrl(
         @Header("Authorization") token: String,
-        @Body updatedInfo: UpdateProfileRequestDto
-    ): Response<UserProfileResponse>
+        @Body requestBody: PresignedUrlRequest
+    ): Response<PresignedUrlResponse>
+
+    // ✅ 스토리 등록
+    @POST("stories")
+    suspend fun postStory(
+        @Header("Authorization") token: String,
+        @Body requestBody: StoryPostRequest
+    ): Response<StoryPostResponse>
 
     // ✅ 내 스토리 목록 조회
-    @GET("story/my")
+    @GET("stories/my")
     suspend fun getMyStories(
         @Header("Authorization") token: String
-    ): Response<List<StoryData>>
+    ): Response<StoryListResponse>
 
-    // ✅ 스토리 상세 조회
-    @GET("story/{id}")
+    // ✅ 특정 스토리 가져오기
+    @GET("stories/{id}")
     suspend fun getStoryById(
         @Header("Authorization") token: String,
         @Path("id") storyId: Int
     ): Response<StoryData>
 
-    // ✅ 이미지 업로드
-    @Multipart
-    @POST("upload/image")
-    suspend fun uploadImage(
-        @Part image: MultipartBody.Part
-    ): Response<UploadImageResponse>
 
-    // ✅ 유저 ID 기반 조회
-    @GET("users/{id}")
-    suspend fun getUserProfileById(
-        @Path("id") id: Int
-    ): Response<UserProfileResponse>
+// ✅ 사용자 정보 조회 (새로운 방식)
+    @GET("users/my")
+    suspend fun getMyInfo(
+        @Header("Authorization") token: String
+    ): Response<UserData>
 
-    //지피티 테스트
+
+    // 추천 활동 가져오기 (최신 글 기반)
+    @GET("reports/recommend")
+    suspend fun getRecommendations(
+        @Header("Authorization") token: String
+    ): Response<List<RecommendationResponse>>
+
+    // ✅ ChatGPT 요청 (테스트)
     @POST("chat-gpt/test")
     suspend fun requestChatGptTest(
         @Query("emotion") emotion: String
-    ): Response<String>   // ⚡ 꼭 String으로!
-
-
-
-
+    ): Response<String>
 
 }
-

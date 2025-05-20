@@ -26,19 +26,21 @@ import com.example.bloom.R
 fun StartScreen(navController: NavController) {
     Column(
         modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Spacer(modifier = Modifier.weight(1f)) // 상단 공간 비율
+
         Image(
             painter = painterResource(id = R.drawable.logo),
             contentDescription = "앱 로고",
-            modifier = Modifier.size(300.dp)
+            modifier = Modifier.size(200.dp)
         )
-        Spacer(modifier = Modifier.height(20.dp))
+
+        Spacer(modifier = Modifier.height(30.dp))
 
         Button(
             onClick = { navController.navigate("login") },
-            modifier = Modifier.size(250.dp, 60.dp),
+            modifier = Modifier.size(250.dp, 45.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF55996F), contentColor = Color.White)
         ) {
             Text("로그인", fontSize = 18.sp)
@@ -48,10 +50,12 @@ fun StartScreen(navController: NavController) {
 
         Button(
             onClick = { navController.navigate("signup") },
-            modifier = Modifier.size(250.dp, 60.dp),
+            modifier = Modifier.size(250.dp, 45.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF55996F), contentColor = Color.White)
         ) {
             Text("회원가입", fontSize = 18.sp)
         }
+
+        Spacer(modifier = Modifier.weight(2f)) // 하단 공간 비율
     }
 }
