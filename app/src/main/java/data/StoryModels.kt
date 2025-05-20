@@ -54,9 +54,11 @@ data class StoryData(
     val bloom_id: Int,
     val sharing_type: String,
     val image_url: String,
-    val created_at: String
+    val created_at: String,
+    val is_mine: Boolean
 )
 
+//뭔가 이 부분이 문제인 것 같음
 // 위치 기반 스토리 목록 응답
 data class StoryListResponse(
     val stories: List<StoryData>
@@ -67,17 +69,10 @@ data class FeedFlower(
     val id: Int,
     val latitude: Double,
     val longitude: Double,
-    val emotion: String
-)
-// 추천 활동 응답 데이터
-data class RecommendationResponse(
-    val category: String,
-    val content: String,
-    val reason: String,
-    val story_id: Int
-)
+    val emotion: String,
 
 
+)
 
 
 

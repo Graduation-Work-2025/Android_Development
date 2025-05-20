@@ -37,6 +37,10 @@ private val BlockBackground = Color.White
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ChatGptTestScreen(navController: NavController) {
+    var emotionInput by remember { mutableStateOf("") }
+    var responseMessage = remember { mutableStateOf("") }
+    val isLoading = remember { mutableStateOf(false) }
+
     val currentRoute = navController.currentBackStackEntry?.destination?.route
 
     Scaffold(
@@ -44,29 +48,27 @@ fun ChatGptTestScreen(navController: NavController) {
             BottomNavigationBar(navController = navController, currentRoute = currentRoute)
         }
     ) { paddingValues ->
+
         Column(
             modifier = Modifier
-                .padding(paddingValues)
-                .padding(16.dp)
                 .fillMaxSize()
+                .padding(24.dp)
+                .padding(paddingValues)
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            var emotionInput by remember { mutableStateOf("") }
-            var responseMessage = remember { mutableStateOf("") }
-            val isLoading = remember { mutableStateOf(false) }
 
-            // 감정 입력 필드
             OutlinedTextField(
                 value = emotionInput,
                 onValueChange = { emotionInput = it },
                 label = { Text("감정 입력") },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
                 shape = RoundedCornerShape(12.dp)
             )
 
-            // 요청 버튼
             Button(
                 onClick = {
                     if (emotionInput.isNotEmpty()) {
@@ -76,6 +78,7 @@ fun ChatGptTestScreen(navController: NavController) {
                 },
                 modifier = Modifier
                     .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
                     .height(50.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = BloomPrimary,
@@ -92,10 +95,11 @@ fun ChatGptTestScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // ✅ 활동 추천 결과 카드
             if (responseMessage.value.isNotEmpty()) {
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = BloomBackground,
@@ -107,21 +111,53 @@ fun ChatGptTestScreen(navController: NavController) {
                         modifier = Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text("🌟 활동 추천 결과 🌟", fontWeight = FontWeight.Bold, color = BloomPrimary)
+                        Text(
+                            text = "🌟 활동 추천 결과 🌟",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = BloomPrimary
+                        )
+
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text(responseMessage.value, color = BloomPrimary, lineHeight = 24.sp)
+
+                        Text(
+                            text = responseMessage.value,
+                            fontSize = 16.sp,
+                            color = BloomPrimary,
+                            lineHeight = 24.sp
+                        )
+
+                        IconButton(
+                            onClick = {
+                                isLoading.value = true
+                                requestRecommendation(emotionInput, isLoading, responseMessage)
+                            },
+                            modifier = Modifier
+                                .align(Alignment.End)
+                                .padding(4.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_reload),
+                                contentDescription = "새로고침",
+                                tint = BloomPrimary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // ✅ 7일 요약 표
-            Text("🗓️ 최근 7일 요약", fontWeight = FontWeight.Bold, color = BloomPrimary)
+            Text(
+                text = "🗓️ 최근 7일 요약",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = BloomPrimary
+            )
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // ✅ 7일 요약 데이터 (더미 데이터)
             val weeklySummaries = mapOf(
                 "월" to listOf("마라탕", "친구", "행복"),
                 "화" to listOf("학교", "공부", "피곤"),
@@ -133,7 +169,9 @@ fun ChatGptTestScreen(navController: NavController) {
             )
 
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = BloomBackground,
@@ -141,14 +179,22 @@ fun ChatGptTestScreen(navController: NavController) {
                 ),
                 elevation = CardDefaults.cardElevation(4.dp)
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     weeklySummaries.forEach { (day, activities) ->
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            Text(day, fontWeight = FontWeight.Bold, color = BloomPrimary, modifier = Modifier.weight(0.15f))
+                            Text(
+                                text = day,
+                                fontWeight = FontWeight.Bold,
+                                color = BloomPrimary,
+                                modifier = Modifier.weight(0.15f)
+                            )
 
                             FlowRow(
                                 modifier = Modifier.weight(0.85f),
@@ -159,9 +205,14 @@ fun ChatGptTestScreen(navController: NavController) {
                                     Box(
                                         modifier = Modifier
                                             .background(BloomTertiary, RoundedCornerShape(16.dp))
-                                            .padding(6.dp)
+                                            .padding(vertical = 6.dp, horizontal = 12.dp)
                                     ) {
-                                        Text(activity, color = BloomPrimary, fontSize = 14.sp, textAlign = TextAlign.Center)
+                                        Text(
+                                            text = activity,
+                                            color = BloomPrimary,
+                                            fontSize = 14.sp,
+                                            textAlign = TextAlign.Center
+                                        )
                                     }
                                 }
                             }

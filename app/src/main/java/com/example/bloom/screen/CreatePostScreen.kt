@@ -194,7 +194,7 @@ fun CreatePostScreen(navController: NavController) {
 }
 
 
-    private fun getLocation(
+private fun getLocation(
     fusedLocationClient: FusedLocationProviderClient,
     onLocationReceived: (Location) -> Unit
 ) {

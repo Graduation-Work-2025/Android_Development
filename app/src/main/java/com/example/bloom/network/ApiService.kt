@@ -5,6 +5,8 @@ import com.example.bloom.data.GptRequestBody
 import com.example.bloom.data.GptResponse
 import retrofit2.Response
 import retrofit2.http.*
+import retrofit2.http.GET
+
 
 interface ApiService {
 
@@ -55,16 +57,20 @@ interface ApiService {
     ): Response<UserData>
 
 
-    // 추천 활동 가져오기 (최신 글 기반)
-    @GET("reports/recommend")
-    suspend fun getRecommendations(
-        @Header("Authorization") token: String
-    ): Response<List<RecommendationResponse>>
-
     // ✅ ChatGPT 요청 (테스트)
     @POST("chat-gpt/test")
     suspend fun requestChatGptTest(
         @Query("emotion") emotion: String
     ): Response<String>
+
+
+
+
+    @GET("stories")
+    suspend fun getStories(
+        @Header("Authorization") token: String,
+        @Query("longitude") longitude: Double,
+        @Query("latitude") latitude: Double
+    ): Response<StoryListResponse>
 
 }
