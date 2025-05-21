@@ -36,6 +36,14 @@ interface ApiService {
         @Body requestBody: StoryPostRequest
     ): Response<StoryPostResponse>
 
+    // ✅ 위치 기반 주변 스토리 조회
+    @GET("stories")
+    suspend fun getStories(
+        @Header("Authorization") token: String,
+        @Query("longitude") longitude: Double,
+        @Query("latitude") latitude: Double
+    ): Response<StoryListResponse>
+
     // ✅ 내 스토리 목록 조회
     @GET("stories/my")
     suspend fun getMyStories(
@@ -50,7 +58,7 @@ interface ApiService {
     ): Response<StoryData>
 
 
-// ✅ 사용자 정보 조회 (새로운 방식)
+    // ✅ 사용자 정보 조회 (새로운 방식)
     @GET("users/my")
     suspend fun getMyInfo(
         @Header("Authorization") token: String
@@ -65,12 +73,9 @@ interface ApiService {
 
 
 
-
-    @GET("stories")
-    suspend fun getStories(
+    @GET("reports/emotions")
+    suspend fun getReportsEmotions(
         @Header("Authorization") token: String,
-        @Query("longitude") longitude: Double,
-        @Query("latitude") latitude: Double
     ): Response<StoryListResponse>
 
 }

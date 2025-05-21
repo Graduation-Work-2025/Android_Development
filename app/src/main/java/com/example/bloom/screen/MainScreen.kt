@@ -1,4 +1,5 @@
 package com.example.bloom.screen
+
 import androidx.compose.foundation.shape.CircleShape
 import com.google.android.gms.maps.model.CameraPosition
 import android.Manifest
@@ -34,10 +35,13 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import com.example.bloom.R
 import android.content.Context
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.location.Location
+import androidx.annotation.RequiresPermission
+import androidx.core.app.ActivityCompat
 import com.google.android.gms.maps.model.BitmapDescriptor
-
 
 
 private var locationCallback: LocationCallback? = null
@@ -50,7 +54,12 @@ private const val OFFSET_DISTANCE = 0.00005
  * @param width - 원하는 너비 (픽셀 단위)
  * @param height - 원하는 높이 (픽셀 단위)
  */
-fun getResizedMarkerIcon(context: Context, resourceId: Int, width: Int, height: Int): BitmapDescriptor {
+fun getResizedMarkerIcon(
+    context: Context,
+    resourceId: Int,
+    width: Int,
+    height: Int
+): BitmapDescriptor {
     val originalBitmap = BitmapFactory.decodeResource(context.resources, resourceId)
     val resizedBitmap = Bitmap.createScaledBitmap(originalBitmap, width, height, false)
     return BitmapDescriptorFactory.fromBitmap(resizedBitmap)
@@ -79,7 +88,15 @@ fun MainScreen(navController: NavController) {
     val requestLocationPermission = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { granted ->
-        if (granted) {
+        if (granted && ActivityCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED ||
+            ActivityCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
             startLocationUpdates(fusedLocationClient) { location ->
                 val newLocation = LatLng(location.latitude, location.longitude)
                 userLocation = newLocation
@@ -101,9 +118,11 @@ fun MainScreen(navController: NavController) {
         requestLocationPermission.launch(Manifest.permission.ACCESS_FINE_LOCATION)
     }
 
-    LaunchedEffect(bearerToken) {
+    LaunchedEffect(bearerToken, userLocation) {
         coroutineScope.launch {
-            feedList = fetchFeedFlowers(bearerToken)
+            userLocation?.let { location ->
+                feedList = fetchFeedFlowers(bearerToken, location.latitude, location.longitude)
+            }
         }
     }
 
@@ -144,7 +163,12 @@ fun MainScreen(navController: NavController) {
 
                     Marker(
                         state = MarkerState(markerPosition),
-                        icon = getResizedMarkerIcon(context, markerImageResId, 100, 100),  // ✅ 크기 조정
+                        icon = getResizedMarkerIcon(
+                            context,
+                            markerImageResId,
+                            100,
+                            100
+                        ),  // ✅ 크기 조정
                         title = "스토리 ${flower.id}",
                         onClick = {
                             navController.navigate("post_detail/${flower.id}")
@@ -235,10 +259,10 @@ fun BottomNavigationBar(navController: NavController, currentRoute: String?) {
 }
 
 
-
+@RequiresPermission(allOf = [Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION])
 private fun startLocationUpdates(
     fusedLocationClient: FusedLocationProviderClient,
-    onLocationReceived: (android.location.Location) -> Unit
+    onLocationReceived: (Location) -> Unit
 ) {
     val locationRequest = LocationRequest.create().apply {
         interval = 3000
@@ -259,9 +283,13 @@ private fun startLocationUpdates(
     )
 }
 
-suspend fun fetchFeedFlowers(bearerToken: String): List<FeedFlower> {
+suspend fun fetchFeedFlowers(
+    bearerToken: String,
+    latitude: Double,
+    longitude: Double
+): List<FeedFlower> {
     return try {
-        val response = RetrofitInstance.api.getMyStories(bearerToken)
+        val response = RetrofitInstance.api.getStories(bearerToken, latitude, longitude)
         if (response.isSuccessful) {
             response.body()?.stories?.map { story ->
                 FeedFlower(

@@ -274,7 +274,8 @@ private fun uploadStory(
         }
     }
 }
-// ✅ EmotionDropdownMenu 함수 추가
+
+// ✅ EmotionDropdownMenu 함수 수정
 @Composable
 fun EmotionDropdownMenu(
     selectedEmotion: String,
@@ -283,8 +284,8 @@ fun EmotionDropdownMenu(
     onEmotionSelected: (String) -> Unit,
     onSubEmotionSelected: (String) -> Unit
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    var subExpanded by remember { mutableStateOf(false) }
+    var showEmotionDialog by remember { mutableStateOf(false) }
+    var showSubEmotionDialog by remember { mutableStateOf(false) }
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -293,31 +294,53 @@ fun EmotionDropdownMenu(
     ) {
         // 감정 선택 버튼
         OutlinedButton(
-            onClick = { expanded = true },
+            onClick = { showEmotionDialog = true },
             modifier = Modifier.weight(1f)
         ) {
             Text(text = selectedEmotion)
         }
 
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
-        ) {
-            emotionCategories.keys.forEach { emotion ->
-                DropdownMenuItem(
-                    text = { Text(emotion) },
-                    onClick = {
-                        onEmotionSelected(emotion)
-                        onSubEmotionSelected("") // 세부 감정 초기화
-                        expanded = false
+        if (showEmotionDialog) {
+            AlertDialog(
+                onDismissRequest = { showEmotionDialog = false },
+                title = { Text("감정 선택") },
+                text = {
+                    val emotions = emotionCategories.keys.toList()
+                    // 4열 그리드
+                    val rows = (emotions.size + 3) / 4
+                    Column {
+                        for (row in 0 until rows) {
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                                for (col in 0 until 4) {
+                                    val idx = row * 4 + col
+                                    if (idx < emotions.size) {
+                                        val emotion = emotions[idx]
+                                        TextButton(
+                                            onClick = {
+                                                onEmotionSelected(emotion)
+                                                onSubEmotionSelected("")
+                                                showEmotionDialog = false
+                                            },
+                                            modifier = Modifier.weight(1f).padding(2.dp)
+                                        ) {
+                                            Text(emotion)
+                                        }
+                                    } else {
+                                        Spacer(modifier = Modifier.weight(1f))
+                                    }
+                                }
+                            }
+                        }
                     }
-                )
-            }
+                },
+                confirmButton = {},
+                dismissButton = {}
+            )
         }
 
         // 세부 감정 선택 버튼
         OutlinedButton(
-            onClick = { subExpanded = true },
+            onClick = { showSubEmotionDialog = true },
             modifier = Modifier.weight(1f)
         ) {
             Text(
@@ -325,19 +348,39 @@ fun EmotionDropdownMenu(
             )
         }
 
-        DropdownMenu(
-            expanded = subExpanded,
-            onDismissRequest = { subExpanded = false }
-        ) {
-            subEmotions.forEach { subEmotion ->
-                DropdownMenuItem(
-                    text = { Text(subEmotion) },
-                    onClick = {
-                        onSubEmotionSelected(subEmotion)
-                        subExpanded = false
+        if (showSubEmotionDialog) {
+            AlertDialog(
+                onDismissRequest = { showSubEmotionDialog = false },
+                title = { Text("세부 감정 선택") },
+                text = {
+                    val rows = (subEmotions.size + 3) / 4
+                    Column {
+                        for (row in 0 until rows) {
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                                for (col in 0 until 4) {
+                                    val idx = row * 4 + col
+                                    if (idx < subEmotions.size) {
+                                        val subEmotion = subEmotions[idx]
+                                        TextButton(
+                                            onClick = {
+                                                onSubEmotionSelected(subEmotion)
+                                                showSubEmotionDialog = false
+                                            },
+                                            modifier = Modifier.weight(1f).padding(2.dp)
+                                        ) {
+                                            Text(subEmotion)
+                                        }
+                                    } else {
+                                        Spacer(modifier = Modifier.weight(1f))
+                                    }
+                                }
+                            }
+                        }
                     }
-                )
-            }
+                },
+                confirmButton = {},
+                dismissButton = {}
+            )
         }
     }
 }
