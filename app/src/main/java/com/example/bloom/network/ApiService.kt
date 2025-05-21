@@ -40,8 +40,8 @@ interface ApiService {
     @GET("stories")
     suspend fun getStories(
         @Header("Authorization") token: String,
-        @Query("longitude") longitude: Double,
-        @Query("latitude") latitude: Double
+        @Query("latitude") latitude: Double,
+        @Query("longitude") longitude: Double
     ): Response<StoryListResponse>
 
     // ✅ 내 스토리 목록 조회

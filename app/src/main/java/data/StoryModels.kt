@@ -70,7 +70,7 @@ data class FeedFlower(
     val latitude: Double,
     val longitude: Double,
     val emotion: String,
-
+    val is_mine: Boolean
 
 )
 
