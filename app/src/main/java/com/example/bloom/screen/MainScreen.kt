@@ -188,7 +188,8 @@ fun MainScreen(navController: NavController) {
                         ),  // ✅ 크기 조정
                         title = "스토리 ${flower.id}",
                         onClick = {
-                            navController.navigate("post_detail/${flower.id}")
+//                            navController.navigate("post_detail/${flower.id}")
+                            navController.navigate("post_list/${flower.id}")
                             true
                         }
                     )

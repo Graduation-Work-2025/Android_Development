@@ -62,6 +62,16 @@ fun AppNavigator() {
 
         // ✅ Post Detail Screen - Int 타입으로 통일
         composable(
+            "post_list/{storyIds}",
+            arguments = listOf(navArgument("storyIds") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val storyIdsArg = backStackEntry.arguments?.getString("storyIds")
+            val storyIds = storyIdsArg?.split(",")?.mapNotNull { it.toIntOrNull() } ?: emptyList()
+            PostListScreen(navController = navController, storyIds = storyIds)
+        }
+
+        // ✅ Post Detail Screen - Int 타입으로 통일
+        composable(
             "post_detail/{storyId}",
             arguments = listOf(navArgument("storyId") { type = NavType.IntType })
         ) { backStackEntry ->
