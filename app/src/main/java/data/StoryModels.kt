@@ -50,10 +50,11 @@ data class StoryData(
     val latitude: Double,
     val likes: Int,
     val user_id: Int,
+    val nickname: String,
     val emotion_type: String,
     val bloom_id: Int,
     val sharing_type: String,
-    val image_url: String,
+    val image_url: String? = null,
     val created_at: String,
     val is_mine: Boolean
 )
@@ -69,6 +70,11 @@ data class FeedFlower(
     val id: Int,
     val latitude: Double,
     val longitude: Double,
+    val user_id: Int,
+    val nickname: String,
+    val bloom_id: Int,
+    val image_url: String? = null,
+    val created_at: String,
     val emotion: String,
     val is_mine: Boolean
 

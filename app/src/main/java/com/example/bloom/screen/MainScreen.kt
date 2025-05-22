@@ -11,11 +11,21 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresPermission
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
@@ -42,10 +52,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.app.ActivityCompat
 import androidx.navigation.NavController
+import coil.compose.rememberAsyncImagePainter
 import com.example.bloom.R
 import com.example.bloom.data.FeedFlower
 import com.example.bloom.network.RetrofitInstance
@@ -134,6 +146,61 @@ fun groupFlowersByProximity(
 }
 
 @Composable
+fun FlowerPopup(navController: NavController, flowers: List<FeedFlower>, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                flowers.forEach { flower ->
+                    val markerImageInfo = getMarkerImageInfo(
+                        flower.emotion,
+                        flower.is_mine
+                    )
+                    Row(
+                        modifier = Modifier
+                            .padding(vertical = 8.dp)
+                            .background(Color(0xFFCDEADF), shape = MaterialTheme.shapes.medium)
+                            .fillMaxWidth()
+                            .clickable {
+                                navController.navigate("post_detail/${flower.id}")
+                                onDismiss()
+                            },
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Image(
+                            painter = rememberAsyncImagePainter(markerImageInfo.resId),
+                            contentDescription = "Marker Image",
+                            modifier = Modifier.size(40.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = flower.nickname, fontSize = 24.sp, fontWeight = FontWeight.Bold,
+                            color = Color(0xff55996f),
+                            modifier = Modifier
+                                .width(IntrinsicSize.Max)
+                                .fillMaxWidth()
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = flower.created_at.substring(2, 10).replace("-", "."),
+                            color = Color(0xff55996f),
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("닫기")
+            }
+        },
+        containerColor = Color(0xFFF8F8F8)
+    )
+}
+
+@Composable
 fun MainScreen(navController: NavController) {
     val context = LocalContext.current
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
@@ -142,6 +209,7 @@ fun MainScreen(navController: NavController) {
     var feedList by remember { mutableStateOf<List<FeedFlower>>(emptyList()) }
     var userLocation by remember { mutableStateOf<LatLng?>(null) }
     var showRemindDialog by remember { mutableStateOf(false) }
+    var selectedFlowers by remember { mutableStateOf<List<FeedFlower>?>(null) }
 
     // ✅ 초기값을 한국 대전 위치로 설정
     val initialLocation = LatLng(36.7631, 127.2827)
@@ -223,25 +291,28 @@ fun MainScreen(navController: NavController) {
                     0.00005
                 ) // Approx. 5m in lat/lng degrees
 
-                groupedMarkers.forEach { markerPosition ->
+                groupedMarkers.forEach { markerGroup ->
                     Marker(
-                        state = MarkerState(markerPosition.first),
+                        state = MarkerState(markerGroup.first),
                         icon = getResizedMarkerIcon(
                             context,
                             R.drawable.flower_8,
                             150,
                             150
                         ),
-                        title = "스토리 그룹",
+                        title = "꽃 그룹",
                         onClick = {
-                            navController.navigate("post_list/${markerPosition.second[0].id}")
+                            selectedFlowers = markerGroup.second
                             true
                         }
                     )
                 }
 
                 individualMarkers.forEach { markerPosition ->
-                    val markerImageInfo = getMarkerImageInfo(markerPosition.second.emotion, markerPosition.second.is_mine)
+                    val markerImageInfo = getMarkerImageInfo(
+                        markerPosition.second.emotion,
+                        markerPosition.second.is_mine
+                    )
                     Marker(
                         state = MarkerState(markerPosition.first),
                         icon = getResizedMarkerIcon(
@@ -296,6 +367,12 @@ fun MainScreen(navController: NavController) {
                         }
                     }
                 )
+            }
+            if (selectedFlowers != null) {
+                FlowerPopup(
+                    navController = navController,
+                    flowers = selectedFlowers!!,
+                    onDismiss = { selectedFlowers = null })
             }
         }
     }
@@ -405,6 +482,11 @@ suspend fun fetchFeedFlowers(
                     latitude = story.latitude,
                     longitude = story.longitude,
                     emotion = story.emotion_type,
+                    image_url = story.image_url,
+                    bloom_id = story.bloom_id,
+                    user_id = story.user_id,
+                    nickname = story.nickname,
+                    created_at = story.created_at,
                     is_mine = story.is_mine,
                 )
             } ?: emptyList()
@@ -415,17 +497,3 @@ suspend fun fetchFeedFlowers(
         emptyList()
     }
 }
-/*
-fun getMarkerImageForEmotion(emotion: String): Int {
-    return when (emotion) {
-        "기쁨" -> R.drawable.flower_7
-        "슬픔" -> R.drawable.flower_3
-        "놀람" -> R.drawable.flower_1
-        "분노" -> R.drawable.flower_2
-        "공포" -> R.drawable.flower_4
-        "혐오" -> R.drawable.flower_9
-        else -> R.drawable.flower_5
-    }
-}
-*/
-
