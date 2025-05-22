@@ -13,7 +13,7 @@ import com.example.bloom.R
 fun BottomNavigationBar(navController: NavController) {
     val items = listOf(
         BottomNavItem("main", "홈", R.drawable.ic_home),
-        BottomNavItem("chatgpttest", "추천", R.drawable.ic_gpt),
+        BottomNavItem("chatgpttest", "리포트", R.drawable.ic_gpt),
         BottomNavItem("emotion_garden", "정원", R.drawable.ic_garden)
     )
 
