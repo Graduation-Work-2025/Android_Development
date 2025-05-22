@@ -21,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Spa
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -28,9 +29,11 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -93,6 +96,7 @@ fun MainScreen(navController: NavController) {
 
     var feedList by remember { mutableStateOf<List<FeedFlower>>(emptyList()) }
     var userLocation by remember { mutableStateOf<LatLng?>(null) }
+    var showRemindDialog by remember { mutableStateOf(false) }
 
     // ✅ 초기값을 한국 대전 위치로 설정
     val initialLocation = LatLng(36.7631, 127.2827)
@@ -198,7 +202,9 @@ fun MainScreen(navController: NavController) {
             }
 
             FloatingActionButton(
-                onClick = { navController.navigate("create_post") },
+                onClick = {
+                    navController.navigate("create_post")
+                },
                 modifier = Modifier
                     .align(Alignment.BottomStart)
                     .padding(16.dp),
@@ -206,6 +212,32 @@ fun MainScreen(navController: NavController) {
                 shape = CircleShape
             ) {
                 Text("+", color = Color.White, fontSize = 24.sp)
+            }
+            val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
+            val result = savedStateHandle?.getLiveData<String>("result_key")?.observeAsState()
+            result?.value?.let { resultValue ->
+                if (resultValue.isNotEmpty()) {
+                    // 결과값을 사용하여 UI 업데이트
+                    savedStateHandle.set("result_key", "") // 결과값 초기화
+                    coroutineScope.launch {
+                        kotlinx.coroutines.delay(1000)
+                        showRemindDialog = true
+                    }
+                }
+            }
+            if (showRemindDialog) {
+                AlertDialog(
+                    onDismissRequest = { showRemindDialog = false },
+                    title = { Text("알림") },
+                    text = { Text("과거에 근처에서 작성한 스토리가 있어요") },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            showRemindDialog = false
+                        }) {
+                            Text("확인")
+                        }
+                    }
+                )
             }
         }
     }

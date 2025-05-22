@@ -39,7 +39,7 @@ data class StoryPostResponse(
     val sharing_type: String,
     val image_url: String?,
     val created_at: String,
-    val remind_story: Int
+    val remind_story: Int?
 )
 
 // 스토리 데이터

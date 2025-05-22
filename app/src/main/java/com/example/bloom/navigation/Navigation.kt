@@ -57,7 +57,7 @@ fun AppNavigator() {
 
         // ✅ Create Post Screen
         composable("create_post") {
-            CreatePostScreen(navController)
+            PostCreateScreen(navController)
         }
 
         // ✅ Post Detail Screen - Int 타입으로 통일
