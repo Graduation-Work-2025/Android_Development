@@ -9,6 +9,8 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -19,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
@@ -314,6 +317,8 @@ fun EmotionDropdownMenu(
             modifier = Modifier.weight(1f)
         ) {
             Text(text = selectedEmotion)
+            if (selectedSubEmotion.isNotEmpty())
+                Text(text = " - $selectedSubEmotion")
         }
 
         if (showEmotionDialog) {
@@ -321,83 +326,74 @@ fun EmotionDropdownMenu(
                 onDismissRequest = { showEmotionDialog = false },
                 title = { Text("감정 선택") },
                 text = {
-                    val emotions = emotionCategories.keys.toList()
-                    // 4열 그리드
-                    val rows = (emotions.size + 3) / 4
-                    Column {
-                        for (row in 0 until rows) {
+                    // 감정(왼쪽)과 세부 감정(오른쪽)을 한 줄에 표시
+                    val emotionsList = emotionCategories.keys.toList()
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        emotionsList.forEach { emotion ->
                             Row(
-                                Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceEvenly
+                                Modifier
+                                    .fillMaxWidth()
+                                    .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                for (col in 0 until 4) {
-                                    val idx = row * 4 + col
-                                    if (idx < emotions.size) {
-                                        val emotion = emotions[idx]
+                                // 왼쪽: 감정 버튼
+                                TextButton(
+                                    onClick = {
+                                        onEmotionSelected(emotion)
+                                        onSubEmotionSelected("")
+                                        showEmotionDialog = false
+                                    },
+                                    contentPadding = PaddingValues(0.dp),
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp))
+                                        .background(
+                                            when (emotion) {
+                                                "기쁨" -> Color(0xFFfff5ba)
+                                                "슬픔" -> Color(0xFFb5e3f7)
+                                                "놀람" -> Color(0xFFd8b4f8)
+                                                "분노" -> Color(0xFFf7a8a8)
+                                                "공포" -> Color(0xFFffd1a6)
+                                                "혐오" -> Color(0xFFb7e4c7)
+                                                else -> Color(0xFFfff5ba)
+                                            },
+                                            RoundedCornerShape(8.dp)
+                                        )
+                                ) {
+                                    Text(
+                                        text = emotion,
+                                        style = MaterialTheme.typography.bodyLarge.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.Black
+                                        )
+                                    )
+                                }
+                                // 오른쪽: 세부 감정들
+                                val subEmotions = emotionCategories[emotion] ?: emptyList()
+                                Row(
+                                    modifier = Modifier.weight(5f),
+                                    horizontalArrangement = Arrangement.Start
+                                ) {
+                                    subEmotions.forEach { subEmotion ->
                                         TextButton(
                                             onClick = {
                                                 onEmotionSelected(emotion)
-                                                onSubEmotionSelected("")
+                                                onSubEmotionSelected(subEmotion)
                                                 showEmotionDialog = false
                                             },
+                                            contentPadding = PaddingValues(0.dp),
                                             modifier = Modifier
-                                                .weight(1f)
-                                                .padding(2.dp)
+                                                .padding(horizontal = 2.dp)
+                                                .defaultMinSize(minWidth = 1.dp) // 최소 너비를 작게 설정
                                         ) {
-                                            Text(emotion)
+                                            Text(
+                                                subEmotion,
+                                                style = MaterialTheme.typography.bodyLarge.copy(
+                                                    color = Color.Black
+                                                ),
+                                                modifier = Modifier.padding(horizontal = 4.dp) // 텍스트 패딩만 약간 부여
+                                            )
                                         }
-                                    } else {
-                                        Spacer(modifier = Modifier.weight(1f))
-                                    }
-                                }
-                            }
-                        }
-                    }
-                },
-                confirmButton = {},
-                dismissButton = {}
-            )
-        }
-
-        // 세부 감정 선택 버튼
-        OutlinedButton(
-            onClick = { showSubEmotionDialog = true },
-            modifier = Modifier.weight(1f)
-        ) {
-            Text(
-                text = if (selectedSubEmotion.isNotBlank()) selectedSubEmotion else "세부 감정 선택"
-            )
-        }
-
-        if (showSubEmotionDialog) {
-            AlertDialog(
-                onDismissRequest = { showSubEmotionDialog = false },
-                title = { Text("세부 감정 선택") },
-                text = {
-                    val rows = (subEmotions.size + 3) / 4
-                    Column {
-                        for (row in 0 until rows) {
-                            Row(
-                                Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceEvenly
-                            ) {
-                                for (col in 0 until 4) {
-                                    val idx = row * 4 + col
-                                    if (idx < subEmotions.size) {
-                                        val subEmotion = subEmotions[idx]
-                                        TextButton(
-                                            onClick = {
-                                                onSubEmotionSelected(subEmotion)
-                                                showSubEmotionDialog = false
-                                            },
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .padding(2.dp)
-                                        ) {
-                                            Text(subEmotion)
-                                        }
-                                    } else {
-                                        Spacer(modifier = Modifier.weight(1f))
                                     }
                                 }
                             }
