@@ -166,7 +166,7 @@ fun PostCreateScreen(navController: NavController) {
                 "분노" -> R.drawable.flower_2
                 "공포" -> R.drawable.flower_4
                 "혐오" -> R.drawable.flower_9
-                else -> R.drawable.flower_5
+                else -> R.drawable.flower_default
             }
             //val markerImage: BitmapDescriptor = getMarkerImageForEmotion(context, selectedEmotion, 100, 100)
 

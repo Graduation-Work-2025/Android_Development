@@ -7,7 +7,6 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.location.Location
 import android.os.Looper
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -51,7 +50,7 @@ import com.example.bloom.R
 import com.example.bloom.data.FeedFlower
 import com.example.bloom.network.RetrofitInstance
 import com.example.bloom.util.TokenProvider
-import com.example.bloom.util.getMarkerImageResId
+import com.example.bloom.util.getMarkerImageInfo
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
@@ -99,34 +98,39 @@ fun getResizedMarkerIcon(
 fun groupFlowersByProximity(
     flowers: List<FeedFlower>,
     maxDistance: Double
-): Pair<List<Pair<LatLng, FeedFlower>>, List<Pair<LatLng, FeedFlower>>> {
-    val groupedFlowers = mutableListOf<Pair<LatLng, FeedFlower>>()
+): Pair<List<Pair<LatLng, List<FeedFlower>>>, List<Pair<LatLng, FeedFlower>>> {
+    val groupedFlowers = mutableListOf<Pair<LatLng, MutableList<FeedFlower>>>()
     val individualFlowers = mutableListOf<Pair<LatLng, FeedFlower>>()
 
     flowers.forEach { flower ->
         val flowerPosition = LatLng(flower.latitude, flower.longitude)
-        val isCloseToExistingGroup = individualFlowers.any { individualFlower ->
+        val existingGroup = groupedFlowers.find { group ->
             val distance = sqrt(
-                (flowerPosition.latitude - individualFlower.first.latitude).pow(2) +
-                        (flowerPosition.longitude - individualFlower.first.longitude).pow(2)
+                (flowerPosition.latitude - group.first.latitude).pow(2) +
+                        (flowerPosition.longitude - group.first.longitude).pow(2)
             )
             distance <= maxDistance
         }
 
-        if (isCloseToExistingGroup) {
-            groupedFlowers.add(
-                Pair(flowerPosition, flower)
-            )
+        if (existingGroup != null) {
+            existingGroup.second.add(flower)
         } else {
-            individualFlowers.add(
-                Pair(flowerPosition, flower)
-            )
+            groupedFlowers.add(Pair(flowerPosition, mutableListOf(flower)))
         }
     }
 
-    Log.e("groupFlowersByProximity", "Grouped Flowers: $groupedFlowers")
-    Log.e("groupFlowersByProximity", "Individual Flowers: $individualFlowers")
-    return Pair(groupedFlowers, individualFlowers)
+    groupedFlowers.forEach { group ->
+        if (group.second.size == 1) {
+            individualFlowers.add(Pair(group.first, group.second.first()))
+        }
+    }
+
+    val finalGroupedFlowers = groupedFlowers.filter { it.second.size > 1 }
+
+    return Pair(
+        finalGroupedFlowers.map { Pair(it.first, it.second.toList()) },
+        individualFlowers
+    )
 }
 
 @Composable
@@ -209,7 +213,8 @@ fun MainScreen(navController: NavController) {
                     Marker(
                         state = MarkerState(location),
                         title = "내 위치",
-                        icon = getResizedMarkerIcon(context, R.drawable.ch0, 150, 150)
+                        icon = getResizedMarkerIcon(context, R.drawable.ch0, 150, 150),
+                        onClick = { true }
                     )
                 }
 
@@ -227,21 +232,29 @@ fun MainScreen(navController: NavController) {
                             150,
                             150
                         ),
-                        title = "꽃 그룹"
+                        title = "스토리 그룹",
+                        onClick = {
+                            navController.navigate("post_list/${markerPosition.second[0].id}")
+                            true
+                        }
                     )
                 }
 
                 individualMarkers.forEach { markerPosition ->
-                    val markerImageResId = getMarkerImageResId(markerPosition.second.emotion, markerPosition.second.is_mine)
+                    val markerImageInfo = getMarkerImageInfo(markerPosition.second.emotion, markerPosition.second.is_mine)
                     Marker(
                         state = MarkerState(markerPosition.first),
                         icon = getResizedMarkerIcon(
                             context,
-                            markerImageResId,
-                            100,
-                            100
+                            markerImageInfo.resId,
+                            markerImageInfo.width,
+                            markerImageInfo.height
                         ),
-                        title = "개별 꽃"
+                        title = "스토리",
+                        onClick = {
+                            navController.navigate("post_detail/${markerPosition.second.id}")
+                            true
+                        }
                     )
                 }
             }
