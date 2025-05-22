@@ -7,6 +7,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.location.Location
 import android.os.Looper
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -66,7 +67,8 @@ import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
 import kotlinx.coroutines.launch
-
+import kotlin.math.pow
+import kotlin.math.sqrt
 
 private var locationCallback: LocationCallback? = null
 
@@ -86,6 +88,45 @@ fun getResizedMarkerIcon(
     val originalBitmap = BitmapFactory.decodeResource(context.resources, resourceId)
     val resizedBitmap = Bitmap.createScaledBitmap(originalBitmap, width, height, false)
     return BitmapDescriptorFactory.fromBitmap(resizedBitmap)
+}
+
+/**
+ * 꽃들을 근접한 위치로 그룹화하는 함수
+ * @param flowers - FeedFlower 리스트
+ * @param maxDistance - 최대 거리 (라디안 단위)
+ * @return 그룹화된 LatLng 리스트와 개별 LatLng 리스트
+ */
+fun groupFlowersByProximity(
+    flowers: List<FeedFlower>,
+    maxDistance: Double
+): Pair<List<Pair<LatLng, FeedFlower>>, List<Pair<LatLng, FeedFlower>>> {
+    val groupedFlowers = mutableListOf<Pair<LatLng, FeedFlower>>()
+    val individualFlowers = mutableListOf<Pair<LatLng, FeedFlower>>()
+
+    flowers.forEach { flower ->
+        val flowerPosition = LatLng(flower.latitude, flower.longitude)
+        val isCloseToExistingGroup = groupedFlowers.any { group ->
+            val distance = sqrt(
+                (flowerPosition.latitude - group.first.latitude).pow(2) +
+                        (flowerPosition.longitude - group.first.longitude).pow(2)
+            )
+            distance <= maxDistance
+        }
+
+        if (isCloseToExistingGroup) {
+            groupedFlowers.add(
+                Pair(flowerPosition, flower)
+            )
+        } else {
+            individualFlowers.add(
+                Pair(flowerPosition, flower)
+            )
+        }
+    }
+
+    Log.e("groupFlowersByProximity", "Grouped Flowers: $groupedFlowers")
+    Log.e("groupFlowersByProximity", "Individual Flowers: $individualFlowers")
+    return Pair(groupedFlowers, individualFlowers)
 }
 
 @Composable
@@ -172,33 +213,37 @@ fun MainScreen(navController: NavController) {
                     )
                 }
 
+                val (groupedMarkers, individualMarkers) = groupFlowersByProximity(
+                    feedList,
+                    0.00005
+                ) // Approx. 5m in lat/lng degrees
 
-
-                feedList.forEachIndexed { index, flower ->
-                    val markerPosition = LatLng(
-                        flower.latitude,
-                        flower.longitude
-                    )
-
-                    val markerImageResId = getMarkerImageResId(flower.emotion, flower.is_mine)
-
+                groupedMarkers.forEach { markerPosition ->
                     Marker(
-                        state = MarkerState(markerPosition),
+                        state = MarkerState(markerPosition.first),
                         icon = getResizedMarkerIcon(
                             context,
-                            markerImageResId,
+                            R.drawable.flower_8,
                             150,
                             150
-                        ),  // ✅ 크기 조정
-                        title = "스토리 ${flower.id}",
-                        onClick = {
-//                            navController.navigate("post_detail/${flower.id}")
-                            navController.navigate("post_list/${flower.id}")
-                            true
-                        }
+                        ),
+                        title = "꽃 그룹"
                     )
                 }
 
+//                individualMarkers.forEach { markerPosition ->
+//                    val markerImageResId = getMarkerImageResId(markerPosition.second.emotion, markerPosition.second.is_mine)
+//                    Marker(
+//                        state = MarkerState(markerPosition.first),
+//                        icon = getResizedMarkerIcon(
+//                            context,
+//                            markerImageResId,
+//                            100,
+//                            100
+//                        ),
+//                        title = "개별 꽃"
+//                    )
+//                }
             }
 
             FloatingActionButton(
@@ -370,3 +415,4 @@ fun getMarkerImageForEmotion(emotion: String): Int {
     }
 }
 */
+
