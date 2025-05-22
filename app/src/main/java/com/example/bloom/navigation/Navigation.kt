@@ -79,9 +79,9 @@ fun AppNavigator() {
             PostDetailScreen(navController = navController, storyId = storyId)
         }
 
-        // ✅ ChatGPT Test Screen
+        // ✅ ChatGPT Screen
         composable("chatgpttest") {
-            ChatGptTestScreen(navController)
+            ChatGptScreen(navController)
         }
 
         // ✅ Emotion Garden Screen
