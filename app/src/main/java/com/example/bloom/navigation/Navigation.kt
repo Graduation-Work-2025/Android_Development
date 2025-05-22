@@ -81,7 +81,7 @@ fun AppNavigator() {
 
         // ✅ ChatGPT Screen
         composable("chatgpttest") {
-            ChatGptScreen(navController)
+            ChatGptTestScreen(navController)
         }
 
         // ✅ Emotion Garden Screen

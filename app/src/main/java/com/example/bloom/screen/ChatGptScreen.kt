@@ -26,6 +26,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import androidx.compose.ui.res.painterResource
 import com.example.bloom.R
+import androidx.compose.ui.platform.LocalContext
+import com.example.bloom.util.TokenProvider
 
 // ✅ 색상 정의
 private val BloomPrimary = Color(0xFF55996F)
@@ -149,6 +151,38 @@ fun ChatGptScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // State for weekly summaries
+            val weeklySummaries = remember { mutableStateOf<Map<String, List<String>>>(emptyMap()) }
+            val isWeeklyLoading = remember { mutableStateOf(false) }
+            val weeklyError = remember { mutableStateOf("") }
+
+            // Fetch weekly summaries on screen load
+            val context = LocalContext.current
+            LaunchedEffect(Unit) {
+                isWeeklyLoading.value = true
+                val token = TokenProvider.getToken(context) ?: ""
+                val bearerToken = "Bearer $token"
+
+                try {
+                    val response = RetrofitInstance.api.getWeeklyKeywords(
+                        token = bearerToken
+                    )
+                    if (response.isSuccessful) {
+                        val summaries = response.body()?.summaries ?: emptyMap()
+                        weeklySummaries.value = summaries.mapValues { it.value.keyword }
+                    } else if (response.code() == 400) {
+                        weeklyError.value = response.body()?.message ?: "요청 실패: (400)"
+                    } else {
+                        weeklyError.value = "요청 실패: ${response.code()}"
+                    }
+                } catch (e: Exception) {
+                    weeklyError.value = "오류: ${e.message}"
+                } finally {
+                    isWeeklyLoading.value = false
+                }
+            }
+
+            // UI for weekly summaries
             Text(
                 text = "🗓️ 최근 7일 요약",
                 fontSize = 18.sp,
@@ -158,61 +192,61 @@ fun ChatGptScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            val weeklySummaries = mapOf(
-                "월" to listOf("마라탕", "친구", "행복"),
-                "화" to listOf("학교", "공부", "피곤"),
-                "수" to listOf("운동", "커피", "상쾌함"),
-                "목" to listOf("내용 없음"),
-                "금" to listOf("회의", "피곤", "스트레스"),
-                "토" to listOf("독서", "영화", "여유"),
-                "일" to listOf("휴식", "낮잠", "재충전")
-            )
-
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = BloomBackground,
-                    contentColor = BloomPrimary
-                ),
-                elevation = CardDefaults.cardElevation(4.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+            if (isWeeklyLoading.value) {
+                CircularProgressIndicator(color = BloomPrimary)
+            } else if (weeklyError.value.isNotEmpty()) {
+                Text(
+                    text = "오류: ${weeklyError.value}",
+                    color = Color.Red,
+                    fontSize = 16.sp
+                )
+            } else {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = BloomBackground,
+                        contentColor = BloomPrimary
+                    ),
+                    elevation = CardDefaults.cardElevation(4.dp)
                 ) {
-                    weeklySummaries.forEach { (day, activities) ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Text(
-                                text = day,
-                                fontWeight = FontWeight.Bold,
-                                color = BloomPrimary,
-                                modifier = Modifier.weight(0.15f)
-                            )
-
-                            FlowRow(
-                                modifier = Modifier.weight(0.85f),
-                                mainAxisSpacing = 8.dp,
-                                crossAxisSpacing = 8.dp
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        weeklySummaries.value.forEach { (day, activities) ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                activities.forEach { activity ->
-                                    Box(
-                                        modifier = Modifier
-                                            .background(BloomTertiary, RoundedCornerShape(16.dp))
-                                            .padding(vertical = 6.dp, horizontal = 12.dp)
-                                    ) {
-                                        Text(
-                                            text = activity,
-                                            color = BloomPrimary,
-                                            fontSize = 14.sp,
-                                            textAlign = TextAlign.Center
-                                        )
+                                Text(
+                                    text = day,
+                                    fontWeight = FontWeight.Bold,
+                                    color = BloomPrimary,
+                                    modifier = Modifier.weight(0.15f)
+                                )
+
+                                FlowRow(
+                                    modifier = Modifier.weight(0.85f),
+                                    mainAxisSpacing = 8.dp,
+                                    crossAxisSpacing = 8.dp
+                                ) {
+                                    activities.forEach { activity ->
+                                        Box(
+                                            modifier = Modifier
+                                                .background(BloomTertiary, RoundedCornerShape(16.dp))
+                                                .padding(vertical = 6.dp, horizontal = 12.dp)
+                                        ) {
+                                            Text(
+                                                text = activity,
+                                                color = BloomPrimary,
+                                                fontSize = 14.sp,
+                                                textAlign = TextAlign.Center
+                                            )
+                                        }
                                     }
                                 }
                             }

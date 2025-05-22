@@ -1,31 +1,58 @@
 package com.example.bloom.screen
 
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import androidx.compose.ui.text.style.TextAlign
-import com.google.accompanist.flowlayout.FlowRow
+import com.example.bloom.R
+import com.example.bloom.data.ChatGptKeywordsRequest
 import com.example.bloom.network.RetrofitInstance
+import com.example.bloom.util.TokenProvider
+import com.google.accompanist.flowlayout.FlowRow
+import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import androidx.compose.ui.res.painterResource
-import com.example.bloom.R
 
 // ✅ 색상 정의
 private val BloomPrimary = Color(0xFF55996F)
@@ -149,6 +176,60 @@ fun ChatGptTestScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // State for weekly summaries
+            val weeklySummaries = remember { mutableStateOf<Map<String, List<String>>>(emptyMap()) }
+            val isWeeklyLoading = remember { mutableStateOf(false) }
+            val weeklyError = remember { mutableStateOf("") }
+            val context = LocalContext.current
+
+            // Fetch weekly summaries on screen load
+            LaunchedEffect(Unit) {
+                isWeeklyLoading.value = true
+                val token = TokenProvider.getToken(context) ?: ""
+                val bearerToken = "Bearer $token"
+
+                try {
+                    // Fetch stories dynamically
+                    val storiesResponse = RetrofitInstance.api.getMyStories(bearerToken)
+                    if (storiesResponse.isSuccessful) {
+                        val stories = storiesResponse.body()?.stories?.map { story ->
+                            val formattedCreatedAt = if (story.created_at.contains("T")) {
+                                story.created_at
+                            } else {
+                                "${story.created_at}T00:00:00"
+                            }
+
+                            ChatGptKeywordsRequest.Story(
+                                storyId = story.id,
+                                createdAt = formattedCreatedAt,
+                                emotion = story.emotion_type,
+                                content = story.content ?: ""
+                            )
+                        } ?: emptyList()
+
+                        val requestBody = ChatGptKeywordsRequest(stories = stories)
+
+                        val response = RetrofitInstance.api.requestChatGptKeywords(
+                            token = bearerToken,
+                            requestBody = Gson().toJson(requestBody)
+                        )
+                        if (response.isSuccessful) {
+                            val summaries = response.body()?.summaries ?: emptyMap()
+                            weeklySummaries.value = summaries.mapValues { it.value.keyword }
+                        } else {
+                            weeklyError.value = "요청 실패: ${response.code()}"
+                        }
+                    } else {
+                        weeklyError.value = "스토리 가져오기 실패: ${storiesResponse.code()}"
+                    }
+                } catch (e: Exception) {
+                    weeklyError.value = "오류: ${e.message}"
+                } finally {
+                    isWeeklyLoading.value = false
+                }
+            }
+
+            // UI for weekly summaries
             Text(
                 text = "🗓️ 최근 7일 요약",
                 fontSize = 18.sp,
@@ -158,61 +239,73 @@ fun ChatGptTestScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            val weeklySummaries = mapOf(
-                "월" to listOf("마라탕", "친구", "행복"),
-                "화" to listOf("학교", "공부", "피곤"),
-                "수" to listOf("운동", "커피", "상쾌함"),
-                "목" to listOf("내용 없음"),
-                "금" to listOf("회의", "피곤", "스트레스"),
-                "토" to listOf("독서", "영화", "여유"),
-                "일" to listOf("휴식", "낮잠", "재충전")
-            )
-
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = BloomBackground,
-                    contentColor = BloomPrimary
-                ),
-                elevation = CardDefaults.cardElevation(4.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+            if (isWeeklyLoading.value) {
+                CircularProgressIndicator(color = BloomPrimary)
+            } else if (weeklyError.value.isNotEmpty()) {
+                Text(
+                    text = "오류: ${weeklyError.value}",
+                    color = Color.Red,
+                    fontSize = 16.sp
+                )
+            } else {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = BloomBackground,
+                        contentColor = BloomPrimary
+                    ),
+                    elevation = CardDefaults.cardElevation(4.dp)
                 ) {
-                    weeklySummaries.forEach { (day, activities) ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Text(
-                                text = day,
-                                fontWeight = FontWeight.Bold,
-                                color = BloomPrimary,
-                                modifier = Modifier.weight(0.15f)
-                            )
-
-                            FlowRow(
-                                modifier = Modifier.weight(0.85f),
-                                mainAxisSpacing = 8.dp,
-                                crossAxisSpacing = 8.dp
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        weeklySummaries.value.forEach { (day, activities) ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                activities.forEach { activity ->
-                                    Box(
-                                        modifier = Modifier
-                                            .background(BloomTertiary, RoundedCornerShape(16.dp))
-                                            .padding(vertical = 6.dp, horizontal = 12.dp)
-                                    ) {
-                                        Text(
-                                            text = activity,
-                                            color = BloomPrimary,
-                                            fontSize = 14.sp,
-                                            textAlign = TextAlign.Center
-                                        )
+                                Text(
+                                    text = when (day.lowercase()) {
+                                        "monday" -> "월"
+                                        "tuesday" -> "화"
+                                        "wednesday" -> "수"
+                                        "thursday" -> "목"
+                                        "friday" -> "금"
+                                        "saturday" -> "토"
+                                        "sunday" -> "일"
+                                        else -> day
+                                    },
+                                    fontWeight = FontWeight.Bold,
+                                    color = BloomPrimary,
+                                    modifier = Modifier.weight(0.15f)
+                                )
+
+                                FlowRow(
+                                    modifier = Modifier.weight(0.85f),
+                                    mainAxisSpacing = 8.dp,
+                                    crossAxisSpacing = 8.dp
+                                ) {
+                                    activities.forEach { activity ->
+                                        Box(
+                                            modifier = Modifier
+                                                .background(
+                                                    BloomTertiary,
+                                                    RoundedCornerShape(16.dp)
+                                                )
+                                                .padding(vertical = 6.dp, horizontal = 12.dp)
+                                        ) {
+                                            Text(
+                                                text = activity,
+                                                color = BloomPrimary,
+                                                fontSize = 14.sp,
+                                                textAlign = TextAlign.Center
+                                            )
+                                        }
                                     }
                                 }
                             }
