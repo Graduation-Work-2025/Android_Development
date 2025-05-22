@@ -105,10 +105,10 @@ fun groupFlowersByProximity(
 
     flowers.forEach { flower ->
         val flowerPosition = LatLng(flower.latitude, flower.longitude)
-        val isCloseToExistingGroup = groupedFlowers.any { group ->
+        val isCloseToExistingGroup = individualFlowers.any { individualFlower ->
             val distance = sqrt(
-                (flowerPosition.latitude - group.first.latitude).pow(2) +
-                        (flowerPosition.longitude - group.first.longitude).pow(2)
+                (flowerPosition.latitude - individualFlower.first.latitude).pow(2) +
+                        (flowerPosition.longitude - individualFlower.first.longitude).pow(2)
             )
             distance <= maxDistance
         }
@@ -231,19 +231,19 @@ fun MainScreen(navController: NavController) {
                     )
                 }
 
-//                individualMarkers.forEach { markerPosition ->
-//                    val markerImageResId = getMarkerImageResId(markerPosition.second.emotion, markerPosition.second.is_mine)
-//                    Marker(
-//                        state = MarkerState(markerPosition.first),
-//                        icon = getResizedMarkerIcon(
-//                            context,
-//                            markerImageResId,
-//                            100,
-//                            100
-//                        ),
-//                        title = "개별 꽃"
-//                    )
-//                }
+                individualMarkers.forEach { markerPosition ->
+                    val markerImageResId = getMarkerImageResId(markerPosition.second.emotion, markerPosition.second.is_mine)
+                    Marker(
+                        state = MarkerState(markerPosition.first),
+                        icon = getResizedMarkerIcon(
+                            context,
+                            markerImageResId,
+                            100,
+                            100
+                        ),
+                        title = "개별 꽃"
+                    )
+                }
             }
 
             FloatingActionButton(
@@ -319,13 +319,13 @@ fun BottomNavigationBar(navController: NavController, currentRoute: String?) {
             icon = {
                 Icon(
                     Icons.Filled.Favorite,
-                    contentDescription = "추천",
+                    contentDescription = "리포트",
                     modifier = Modifier.offset(y = 4.dp)
                 )
             },
             label = {
                 Text(
-                    "추천",
+                    "리포트",
                     color = if (currentRoute == "chatgpttest") Color(0xFF55996F) else Color.Gray,
                     modifier = Modifier.offset(y = 2.dp)
                 )
