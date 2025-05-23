@@ -361,12 +361,17 @@ fun MainScreen(navController: NavController) {
                                 story = response.body()
                             } else {
                                 withContext(Dispatchers.Main) {
-                                    Toast.makeText(context, "스토리 불러오기 실패: ${response.code()}", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(
+                                        context,
+                                        "스토리 불러오기 실패: ${response.code()}",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
                                 }
                             }
                         } catch (e: Exception) {
                             withContext(Dispatchers.Main) {
-                                Toast.makeText(context, "서버 오류: ${e.message}", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "서버 오류: ${e.message}", Toast.LENGTH_SHORT)
+                                    .show()
                             }
                         }
                     }
@@ -386,9 +391,13 @@ fun MainScreen(navController: NavController) {
                     text = {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    navController.navigate("post_detail/${story?.id ?: 0}")
+                                }
                         ) {
-                            if(story != null) {
+                            if (story != null) {
                                 val markerImageInfo = getMarkerImageInfo(
                                     story!!.emotion_type,
                                     story!!.is_mine
@@ -408,6 +417,12 @@ fun MainScreen(navController: NavController) {
                                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                                     modifier = Modifier
                                         .weight(1f)
+                                )
+                            } else {
+                                Text(
+                                    text = "스토리 정보가 없습니다.",
+                                    fontSize = 14.sp,
+                                    modifier = Modifier.weight(1f)
                                 )
                             }
                         }
