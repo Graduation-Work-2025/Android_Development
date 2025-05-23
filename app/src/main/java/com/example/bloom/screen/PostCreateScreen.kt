@@ -277,7 +277,7 @@ private fun uploadStory(
                     if (response.body() != null && response.body()!!.remind_story != null) {
                         navController.previousBackStackEntry?.savedStateHandle?.set(
                             "result_key",
-                            "result"
+                            "${response.body()!!.remind_story}"
                         )
                         Log.e(
                             "PostCreateScreen",

@@ -52,6 +52,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -60,6 +61,7 @@ import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.bloom.R
 import com.example.bloom.data.FeedFlower
+import com.example.bloom.data.StoryData
 import com.example.bloom.network.RetrofitInstance
 import com.example.bloom.util.TokenProvider
 import com.example.bloom.util.getMarkerImageInfo
@@ -77,7 +79,9 @@ import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.math.pow
 import kotlin.math.sqrt
 
@@ -209,7 +213,9 @@ fun MainScreen(navController: NavController) {
     var feedList by remember { mutableStateOf<List<FeedFlower>>(emptyList()) }
     var userLocation by remember { mutableStateOf<LatLng?>(null) }
     var showRemindDialog by remember { mutableStateOf(false) }
+    var remindDialogContent by remember { mutableStateOf("") }
     var selectedFlowers by remember { mutableStateOf<List<FeedFlower>?>(null) }
+    var story by remember { mutableStateOf<StoryData?>(null) }
 
     // ✅ 초기값을 한국 대전 위치로 설정
     val initialLocation = LatLng(36.7631, 127.2827)
@@ -346,6 +352,25 @@ fun MainScreen(navController: NavController) {
             val result = savedStateHandle?.getLiveData<String>("result_key")?.observeAsState()
             result?.value?.let { resultValue ->
                 if (resultValue.isNotEmpty()) {
+                    // 스토리 detail 가져오기
+                    val storyId = resultValue.toInt()
+                    coroutineScope.launch {
+                        try {
+                            val response = RetrofitInstance.api.getStoryById(bearerToken, storyId)
+                            if (response.isSuccessful) {
+                                story = response.body()
+                            } else {
+                                withContext(Dispatchers.Main) {
+                                    Toast.makeText(context, "스토리 불러오기 실패: ${response.code()}", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        } catch (e: Exception) {
+                            withContext(Dispatchers.Main) {
+                                Toast.makeText(context, "서버 오류: ${e.message}", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
+
                     // 결과값을 사용하여 UI 업데이트
                     savedStateHandle.set("result_key", "") // 결과값 초기화
                     coroutineScope.launch {
@@ -354,11 +379,39 @@ fun MainScreen(navController: NavController) {
                     }
                 }
             }
-            if (showRemindDialog || true) {
+            if (showRemindDialog) {
                 AlertDialog(
                     onDismissRequest = { showRemindDialog = false },
                     title = { Text("과거 근처에서 작성한 스토리가 있어요!", fontSize = 16.sp) },
-                    text = { Text("꽃 이미지 + 내용") },
+                    text = {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            if(story != null) {
+                                val markerImageInfo = getMarkerImageInfo(
+                                    story!!.emotion_type,
+                                    story!!.is_mine
+                                )
+                                Image(
+                                    painter = painterResource(id = markerImageInfo.resId),
+                                    contentDescription = "꽃 이미지",
+                                    modifier = Modifier
+                                        .height(60.dp)
+                                        .width(60.dp)
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(
+                                    text = "${story!!.content}",
+                                    fontSize = 14.sp,
+                                    maxLines = 1,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                )
+                            }
+                        }
+                    },
                     confirmButton = {
                         TextButton(onClick = {
                             showRemindDialog = false
