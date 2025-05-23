@@ -1,5 +1,6 @@
 package com.example.bloom.screen
 
+import android.util.Log
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -114,30 +115,17 @@ fun ChatGptTestScreen(navController: NavController) {
         ) {
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Pie chart example
+            // Emotion Statistics Pie Chart
             Text(
                 text = "감정 그래프",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = BloomPrimary
             )
+            Spacer(modifier = Modifier.height(16.dp))
 
-            Spacer(modifier = Modifier.height(8.dp))
-            PieChart(
-                data = listOf(30f, 20f, 15f, 10f, 15f, 10f), // 예시 데이터
-                colors = listOf(
-                    Color(0xFFfff5ba), // 기쁨
-                    Color(0xFFb5e3f7), // 슬픔
-                    Color(0xFFd8b4f8), // 놀람
-                    Color(0xFFf7a8a8), // 분노
-                    Color(0xFFffd1a6), // 공포
-                    Color(0xFFb7e4c7)  // 혐오
-                ),
-                labels = listOf("기쁨", "슬픔", "놀람", "분노", "공포", "혐오"),
-                modifier = Modifier
-                    .size(200.dp)
-                    .padding(16.dp)
-            )
+            EmotionStatisticsPieChart(navController = navController)
+
             Spacer(modifier = Modifier.height(12.dp))
 
             Card(
@@ -418,6 +406,10 @@ fun PieChart(
                     android.graphics.Paint().apply {
                         color = android.graphics.Color.BLACK
                         textAlign = android.graphics.Paint.Align.CENTER
+                        typeface = android.graphics.Typeface.create(
+                            android.graphics.Typeface.DEFAULT,
+                            android.graphics.Typeface.BOLD
+                        )
                         textSize = 40f
                     }
                 )
@@ -430,6 +422,10 @@ fun PieChart(
                     android.graphics.Paint().apply {
                         color = android.graphics.Color.BLACK
                         textAlign = android.graphics.Paint.Align.CENTER
+                        typeface = android.graphics.Typeface.create(
+                            android.graphics.Typeface.DEFAULT,
+                            android.graphics.Typeface.BOLD
+                        )
                         textSize = 40f
                     }
                 )
@@ -439,3 +435,93 @@ fun PieChart(
         }
     }
 }
+
+// ✅ EmotionStatisticsPieChart Composable
+@Composable
+fun EmotionStatisticsPieChart(navController: NavController) {
+    val context = LocalContext.current
+    val token = TokenProvider.getToken(context) ?: ""
+    val emotionStatistics = remember { mutableStateOf<Map<String, Float>>(emptyMap()) }
+    val isEmotionStatisticsLoading = remember { mutableStateOf(true) }
+
+    LaunchedEffect(Unit) {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val response = RetrofitInstance.api.getEmotionStatistics("Bearer $token")
+                if (response.isSuccessful) {
+                    val stats = response.body()?.toStatisticsMap() ?: emptyMap()
+                    withContext(Dispatchers.Main) {
+                        // {
+                        //  "happy": 10,
+                        //  "sad": 10,
+                        //  "fear": 10,
+                        //  "disgust": 10,
+                        //  "surprised": 10,
+                        //  "angry": 10
+                        //}
+//                         val stats = mapOf(
+//                             "기쁨" to 10f,
+//                             "슬픔" to 10f,
+//                             "공포" to 10f,
+//                             "혐오" to 10f,
+//                             "놀람" to 10f,
+//                             "분노" to 10f
+//                         )
+                        emotionStatistics.value = stats
+                        isEmotionStatisticsLoading.value = false
+                    }
+                } else {
+                    Log.e("EmotionStats", "Failed to fetch: ${response.errorBody()?.string()}")
+                    withContext(Dispatchers.Main) {
+                        isEmotionStatisticsLoading.value = false
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("EmotionStats", "Error: ${e.message}")
+                withContext(Dispatchers.Main) {
+                    isEmotionStatisticsLoading.value = false
+                }
+            }
+        }
+    }
+
+    val data = emotionStatistics.value.values.toList()
+    val labels = emotionStatistics.value.keys.toList()
+    val colors = listOf(
+        Color(0xFFfff5ba), // 기쁨
+        Color(0xFFb5e3f7), // 슬픔
+        Color(0xFFd8b4f8), // 놀람
+        Color(0xFFf7a8a8), // 분노
+        Color(0xFFffd1a6), // 공포
+        Color(0xFFb7e4c7)  // 혐오
+    )
+    Log.d("EmotionStats", "Data: $data, Labels: $labels")
+
+    if (isEmotionStatisticsLoading.value) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(color = BloomPrimary)
+        }
+    } else if (data.isNotEmpty()) {
+        PieChart(
+            data = data,
+            colors = colors,
+            labels = labels,
+            modifier = Modifier
+                .size(300.dp)
+                .padding(16.dp)
+        )
+    } else {
+        Text(
+            text = "데이터 없음",
+            fontSize = 16.sp,
+            color = Color.Black,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
