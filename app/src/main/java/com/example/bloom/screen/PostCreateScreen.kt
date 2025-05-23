@@ -138,12 +138,12 @@ fun PostCreateScreen(navController: NavController) {
                 }
             }
 
-            Button(
+            OutlinedButton(
                 onClick = { imagePicker.launch("image/*") },
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFEFF5E7),
-                    contentColor = Color(0xFF004D00)
+                    containerColor = Color(0xFFF8F8F8),
+                    contentColor = Color(0xff55996f)
                 )
             ) {
                 Text("이미지 선택")
@@ -314,7 +314,11 @@ fun EmotionDropdownMenu(
         // 감정 선택 버튼
         OutlinedButton(
             onClick = { showEmotionDialog = true },
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFFF8F8F8),
+                contentColor = Color(0xff55996f)
+            )
         ) {
             Text(text = selectedEmotion)
             if (selectedSubEmotion.isNotEmpty())

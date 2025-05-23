@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -93,7 +95,7 @@ fun ChatGptTestScreen(navController: NavController) {
                 val response = RetrofitInstance.api.getRecommendedActivities(bearerToken)
                 if (response.isSuccessful) {
                     recommendedActivities.value =
-                        "${response.body()?.content ?: ""}\n${response.body()?.reason ?: ""}"
+                        "${response.body()?.content ?: ""}\n\n${response.body()?.reason ?: ""}"
                 } else {
                     recommendationError.value = "추천 활동 가져오기 실패: ${response.code()}"
                 }
@@ -128,6 +130,14 @@ fun ChatGptTestScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(12.dp))
 
+            Text(
+                text = "🌟 활동 추천 결과 🌟",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = BloomPrimary,
+                textAlign = TextAlign.Center
+            )
+
             Card(
                 modifier = Modifier
                     .fillMaxWidth(),
@@ -145,16 +155,7 @@ fun ChatGptTestScreen(navController: NavController) {
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(
-                        text = "🌟 활동 추천 결과 🌟",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = BloomPrimary,
-                        textAlign = TextAlign.Center
-                    )
-
                     Spacer(modifier = Modifier.height(8.dp))
-
                     if (isRecommendationLoading.value) {
                         CircularProgressIndicator(color = BloomPrimary)
                     } else if (recommendationError.value.isNotEmpty()) {
@@ -251,8 +252,6 @@ fun ChatGptTestScreen(navController: NavController) {
                 color = BloomPrimary
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
-
             if (isWeeklyLoading.value) {
                 CircularProgressIndicator(color = BloomPrimary)
             } else if (weeklyError.value.isNotEmpty()) {
@@ -280,7 +279,7 @@ fun ChatGptTestScreen(navController: NavController) {
                         weeklySummaries.value.forEach { (day, activities) ->
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.Top,
+                                verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
                                 Text(
@@ -299,19 +298,21 @@ fun ChatGptTestScreen(navController: NavController) {
                                     modifier = Modifier.weight(0.15f)
                                 )
 
-                                FlowRow(
+                                LazyRow(
                                     modifier = Modifier.weight(0.85f),
-                                    mainAxisSpacing = 8.dp,
-                                    crossAxisSpacing = 8.dp
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    activities.forEach { activity ->
+                                    items(activities) { activity ->
                                         Box(
                                             modifier = Modifier
                                                 .background(
                                                     BloomTertiary,
                                                     RoundedCornerShape(16.dp)
                                                 )
-                                                .padding(vertical = 6.dp, horizontal = 12.dp)
+                                                .padding(
+                                                    vertical = 6.dp,
+                                                    horizontal = 12.dp
+                                                )
                                         ) {
                                             Text(
                                                 text = activity,
@@ -343,7 +344,7 @@ private fun refreshRecommendedActivities(
             val response = RetrofitInstance.api.refreshRecommendedActivities(bearerToken)
 
             if (response.isSuccessful) {
-                val result = "${response.body()?.content ?: ""}\n${response.body()?.reason ?: ""}"
+                val result = "${response.body()?.content ?: ""}\n\n${response.body()?.reason ?: ""}"
                 withContext(Dispatchers.Main) {
                     recommendedActivities.value = result
                     isRecommendationLoading.value = false

@@ -120,7 +120,7 @@ fun MyFeedGardenScreen(navController: NavController) {
                     horizontalArrangement = Arrangement.spacedBy(1.dp),
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    items(stories.reversed()) { story ->
+                    items(stories.sortedByDescending { it.created_at }) { story ->
                         val imageUrl = story.image_url ?: ""
 
                         Box(

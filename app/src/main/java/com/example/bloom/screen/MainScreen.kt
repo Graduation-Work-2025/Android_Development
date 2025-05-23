@@ -241,7 +241,7 @@ fun MainScreen(navController: NavController) {
                 // ✅ 위치가 업데이트되면 카메라 이동
                 coroutineScope.launch {
                     cameraPositionState.animate(
-                        update = CameraUpdateFactory.newLatLngZoom(newLocation, 17f),
+                        update = CameraUpdateFactory.newLatLngZoom(newLocation, 18f),
                         durationMs = 1000
                     )
                 }
@@ -281,7 +281,7 @@ fun MainScreen(navController: NavController) {
                     Marker(
                         state = MarkerState(location),
                         title = "내 위치",
-                        icon = getResizedMarkerIcon(context, R.drawable.ch0, 150, 150),
+                        icon = getResizedMarkerIcon(context, R.drawable.ch0, 225, 225),
                         onClick = { true }
                     )
                 }
@@ -354,11 +354,11 @@ fun MainScreen(navController: NavController) {
                     }
                 }
             }
-            if (showRemindDialog) {
+            if (showRemindDialog || true) {
                 AlertDialog(
                     onDismissRequest = { showRemindDialog = false },
-                    title = { Text("알림") },
-                    text = { Text("과거에 근처에서 작성한 스토리가 있어요") },
+                    title = { Text("과거 근처에서 작성한 스토리가 있어요!", fontSize = 16.sp) },
+                    text = { Text("꽃 이미지 + 내용") },
                     confirmButton = {
                         TextButton(onClick = {
                             showRemindDialog = false
