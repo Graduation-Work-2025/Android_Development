@@ -15,24 +15,19 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -64,10 +59,7 @@ private val BlockBackground = Color.White
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ChatGptTestScreen(navController: NavController) {
-    var emotionInput by remember { mutableStateOf("") }
-    var responseMessage = remember { mutableStateOf("") }
     val isLoading = remember { mutableStateOf(false) }
-
     val currentRoute = navController.currentBackStackEntry?.destination?.route
 
     Scaffold(
@@ -75,6 +67,38 @@ fun ChatGptTestScreen(navController: NavController) {
             BottomNavigationBar(navController = navController, currentRoute = currentRoute)
         }
     ) { paddingValues ->
+        // State for weekly summaries
+        val weeklySummaries = remember { mutableStateOf<Map<String, List<String>>>(emptyMap()) }
+        val isWeeklyLoading = remember { mutableStateOf(false) }
+        val weeklyError = remember { mutableStateOf("") }
+        val context = LocalContext.current
+
+        // State for recommended activities
+        val recommendedActivities = remember { mutableStateOf<String>("") }
+        val isRecommendationLoading = remember { mutableStateOf(false) }
+        val recommendationError = remember { mutableStateOf("") }
+
+        val token = TokenProvider.getToken(context) ?: ""
+        val bearerToken = "Bearer $token"
+
+        // Fetch recommended activities on screen load
+        LaunchedEffect(Unit) {
+            isRecommendationLoading.value = true
+
+            try {
+                val response = RetrofitInstance.api.getRecommendedActivities(bearerToken)
+                if (response.isSuccessful) {
+                    recommendedActivities.value =
+                        "${response.body()?.content ?: ""}\n${response.body()?.reason ?: ""}"
+                } else {
+                    recommendationError.value = "추천 활동 가져오기 실패: ${response.code()}"
+                }
+            } catch (e: Exception) {
+                recommendationError.value = "오류: ${e.message}"
+            } finally {
+                isRecommendationLoading.value = false
+            }
+        }
 
         Column(
             modifier = Modifier
@@ -85,108 +109,81 @@ fun ChatGptTestScreen(navController: NavController) {
             verticalArrangement = Arrangement.spacedBy(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-
-            OutlinedTextField(
-                value = emotionInput,
-                onValueChange = { emotionInput = it },
-                label = { Text("감정 입력") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                shape = RoundedCornerShape(12.dp)
-            )
-
-            Button(
-                onClick = {
-                    if (emotionInput.isNotEmpty()) {
-                        isLoading.value = true
-                        requestRecommendation(emotionInput, isLoading, responseMessage)
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .height(50.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = BloomPrimary,
-                    contentColor = Color.White
-                ),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                if (isLoading.value) {
-                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-                } else {
-                    Text("요청 보내기", fontWeight = FontWeight.Bold)
-                }
-            }
-
             Spacer(modifier = Modifier.height(16.dp))
 
-            if (responseMessage.value.isNotEmpty()) {
-                Card(
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = BloomBackground,
+                    contentColor = BloomPrimary
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            ) {
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = BloomBackground,
-                        contentColor = BloomPrimary
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
+                    Text(
+                        text = "🌟 활동 추천 결과 🌟",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = BloomPrimary,
+                        textAlign = TextAlign.Center
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    if (isRecommendationLoading.value) {
+                        CircularProgressIndicator(color = BloomPrimary)
+                    } else if (recommendationError.value.isNotEmpty()) {
                         Text(
-                            text = "🌟 활동 추천 결과 🌟",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = BloomPrimary
+                            text = "오류: ${recommendationError.value}",
+                            color = Color.Red,
+                            fontSize = 16.sp,
+                            textAlign = TextAlign.Center
                         )
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
+                    } else {
                         Text(
-                            text = responseMessage.value,
+                            text = "${recommendedActivities.value}",
                             fontSize = 16.sp,
                             color = BloomPrimary,
-                            lineHeight = 24.sp
+                            textAlign = TextAlign.Center
                         )
+                    }
 
-                        IconButton(
-                            onClick = {
-                                isLoading.value = true
-                                requestRecommendation(emotionInput, isLoading, responseMessage)
-                            },
-                            modifier = Modifier
-                                .align(Alignment.End)
-                                .padding(4.dp)
-                        ) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.ic_reload),
-                                contentDescription = "새로고침",
-                                tint = BloomPrimary,
-                                modifier = Modifier.size(24.dp)
+                    IconButton(
+                        onClick = {
+                            isRecommendationLoading.value = true
+                            refreshRecommendedActivities(
+                                bearerToken,
+                                isRecommendationLoading,
+                                recommendedActivities
                             )
-                        }
+                        },
+                        modifier = Modifier
+                            .align(Alignment.End)
+                            .padding(4.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_reload),
+                            contentDescription = "새로고침",
+                            tint = BloomPrimary,
+                            modifier = Modifier.size(24.dp)
+                        )
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
-
-            // State for weekly summaries
-            val weeklySummaries = remember { mutableStateOf<Map<String, List<String>>>(emptyMap()) }
-            val isWeeklyLoading = remember { mutableStateOf(false) }
-            val weeklyError = remember { mutableStateOf("") }
-            val context = LocalContext.current
 
             // Fetch weekly summaries on screen load
             LaunchedEffect(Unit) {
                 isWeeklyLoading.value = true
-                val token = TokenProvider.getToken(context) ?: ""
-                val bearerToken = "Bearer $token"
 
                 try {
                     // Fetch stories dynamically
@@ -312,37 +309,41 @@ fun ChatGptTestScreen(navController: NavController) {
                         }
                     }
                 }
+                Spacer(modifier = Modifier.height(16.dp))
             }
         }
     }
 }
 
 // ✅ 요청 함수
-private fun requestRecommendation(
-    emotion: String,
-    isLoading: MutableState<Boolean>,
-    responseMessage: MutableState<String>
+private fun refreshRecommendedActivities(
+    bearerToken: String,
+    isRecommendationLoading: MutableState<Boolean>,
+    recommendedActivities: MutableState<String>
 ) {
     CoroutineScope(Dispatchers.IO).launch {
         try {
-            val response = RetrofitInstance.api.requestChatGptTest(emotion)
+            val response = RetrofitInstance.api.refreshRecommendedActivities(bearerToken)
+
             if (response.isSuccessful) {
-                val result = response.body() ?: "응답 없음"
+                val result = "${response.body()?.content ?: ""}\n${response.body()?.reason ?: ""}"
                 withContext(Dispatchers.Main) {
-                    responseMessage.value = result
-                    isLoading.value = false
+                    recommendedActivities.value = result
+                    isRecommendationLoading.value = false
                 }
             } else {
                 withContext(Dispatchers.Main) {
-                    responseMessage.value = "요청 실패: ${response.code()}"
-                    isLoading.value = false
+                    recommendedActivities.value = "요청 실패: ${response.code()}"
+                    isRecommendationLoading.value = false
                 }
             }
         } catch (e: Exception) {
             withContext(Dispatchers.Main) {
-                responseMessage.value = "오류: ${e.message}"
-                isLoading.value = false
+                recommendedActivities.value = "오류: ${e.message}"
+                isRecommendationLoading.value = false
             }
         }
     }
 }
+
+

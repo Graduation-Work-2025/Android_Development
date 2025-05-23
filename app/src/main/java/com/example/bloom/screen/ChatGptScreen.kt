@@ -1,8 +1,6 @@
 package com.example.bloom.screen
 
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -75,7 +73,7 @@ fun ChatGptScreen(navController: NavController) {
                 onClick = {
                     if (emotionInput.isNotEmpty()) {
                         isLoading.value = true
-                        requestRecommendation(emotionInput, isLoading, responseMessage)
+                        refreshRecommendedActivities(emotionInput, isLoading, responseMessage)
                     }
                 },
                 modifier = Modifier
@@ -132,7 +130,7 @@ fun ChatGptScreen(navController: NavController) {
                         IconButton(
                             onClick = {
                                 isLoading.value = true
-                                requestRecommendation(emotionInput, isLoading, responseMessage)
+                                refreshRecommendedActivities(emotionInput, isLoading, responseMessage)
                             },
                             modifier = Modifier
                                 .align(Alignment.End)
@@ -259,7 +257,7 @@ fun ChatGptScreen(navController: NavController) {
 }
 
 // ✅ 요청 함수
-private fun requestRecommendation(
+private fun refreshRecommendedActivities(
     emotion: String,
     isLoading: MutableState<Boolean>,
     responseMessage: MutableState<String>

@@ -151,10 +151,12 @@ interface ApiService {
 
     @GET("reports/recommend")
     suspend fun getRecommendedActivities(
+        @Header("Authorization") token: String,
     ): Response<RecommendedActivitiesResponse>
 
     @GET("reports/recommend/renewal")
     suspend fun refreshRecommendedActivities(
+        @Header("Authorization") token: String,
     ): Response<RecommendedActivitiesResponse>
 
     // ✅ 지난 일주일 키워드 요약 불러오기
