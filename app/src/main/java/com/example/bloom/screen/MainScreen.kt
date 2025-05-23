@@ -395,6 +395,7 @@ fun MainScreen(navController: NavController) {
                                 .fillMaxWidth()
                                 .clickable {
                                     navController.navigate("post_detail/${story?.id ?: 0}")
+                                    showRemindDialog = false
                                 }
                         ) {
                             if (story != null) {
