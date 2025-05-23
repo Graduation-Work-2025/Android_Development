@@ -1,5 +1,6 @@
 package com.example.bloom.screen
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -31,8 +32,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -49,7 +52,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-// ✅ 색상 정의
+// ✅ 색상 정의a
 private val BloomPrimary = Color(0xFF55996F)
 private val BloomSecondary = Color(0xFF82B69B)
 private val BloomTertiary = Color(0xFFCDEADF)
@@ -110,6 +113,32 @@ fun ChatGptTestScreen(navController: NavController) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(modifier = Modifier.height(16.dp))
+
+            // Pie chart example
+            Text(
+                text = "감정 그래프",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = BloomPrimary
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+            PieChart(
+                data = listOf(30f, 20f, 15f, 10f, 15f, 10f), // 예시 데이터
+                colors = listOf(
+                    Color(0xFFfff5ba), // 기쁨
+                    Color(0xFFb5e3f7), // 슬픔
+                    Color(0xFFd8b4f8), // 놀람
+                    Color(0xFFf7a8a8), // 분노
+                    Color(0xFFffd1a6), // 공포
+                    Color(0xFFb7e4c7)  // 혐오
+                ),
+                labels = listOf("기쁨", "슬픔", "놀람", "분노", "공포", "혐오"),
+                modifier = Modifier
+                    .size(200.dp)
+                    .padding(16.dp)
+            )
+            Spacer(modifier = Modifier.height(12.dp))
 
             Card(
                 modifier = Modifier
@@ -258,12 +287,12 @@ fun ChatGptTestScreen(navController: NavController) {
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         weeklySummaries.value.forEach { (day, activities) ->
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
+                                verticalAlignment = Alignment.Top,
                                 horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
                                 Text(
@@ -346,4 +375,67 @@ private fun refreshRecommendedActivities(
     }
 }
 
+// ✅ PieChart Composable
+@Composable
+fun PieChart(
+    data: List<Float>,
+    colors: List<Color>,
+    labels: List<String>,
+    modifier: Modifier = Modifier
+) {
+    Canvas(modifier = modifier) {
+        val total = data.sum()
+        var startAngle = -90f
 
+        data.forEachIndexed { index, value ->
+            val sweepAngle = (value / total) * 360f
+            drawArc(
+                color = colors[index],
+                startAngle = startAngle,
+                sweepAngle = sweepAngle,
+                useCenter = true
+            )
+
+            // Calculate the angle for the text position
+            val textAngle = Math.toRadians((startAngle + sweepAngle / 2).toDouble())
+            val innerRadius = size.minDimension / 3
+            val outerRadius = size.minDimension / 1.6f
+
+            // Position for percentage text (inside the pie chart)
+            val percentX = (center.x + innerRadius * Math.cos(textAngle)).toFloat()
+            val percentY = (center.y + innerRadius * Math.sin(textAngle)).toFloat()
+
+            // Position for label text (outside the pie chart)
+            val labelX = (center.x + outerRadius * Math.cos(textAngle)).toFloat()
+            val labelY = (center.y + outerRadius * Math.sin(textAngle)).toFloat()
+
+            // Draw the percentage text
+            drawContext.canvas.nativeCanvas.apply {
+                drawText(
+                    "${"%.0f".format((value / total) * 100)}%",
+                    percentX,
+                    percentY,
+                    android.graphics.Paint().apply {
+                        color = android.graphics.Color.BLACK
+                        textAlign = android.graphics.Paint.Align.CENTER
+                        textSize = 40f
+                    }
+                )
+
+                // Draw the label text
+                drawText(
+                    labels[index],
+                    labelX,
+                    labelY,
+                    android.graphics.Paint().apply {
+                        color = android.graphics.Color.BLACK
+                        textAlign = android.graphics.Paint.Align.CENTER
+                        textSize = 40f
+                    }
+                )
+            }
+
+            startAngle += sweepAngle
+        }
+    }
+}
