@@ -222,11 +222,8 @@ fun ChatGptTestScreen(navController: NavController) {
                             )
                         } ?: emptyList()
 
-                        val requestBody = ChatGptKeywordsRequest(stories = stories)
-
-                        val response = RetrofitInstance.api.requestChatGptKeywords(
+                        val response = RetrofitInstance.api.getWeeklyKeywords(
                             token = bearerToken,
-                            requestBody = Gson().toJson(requestBody)
                         )
                         if (response.isSuccessful) {
                             val summaries = response.body()?.summaries ?: emptyMap()
